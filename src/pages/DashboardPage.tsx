@@ -70,7 +70,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-lg font-semibold text-foreground">Command Center</h1>
         <p className="text-xs font-mono text-muted-foreground mt-0.5">
-          Real-time business overview — powered by Kitz agents
+          Real-time business overview — powered by xyz88.io agents
         </p>
       </div>
 
