@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   MessageSquare,
   Mail,
@@ -19,7 +19,12 @@ import {
   MoreHorizontal,
   Star,
   DollarSign,
+  Loader2,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useBusiness } from "@/hooks/useBusiness";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: number;
@@ -85,6 +90,9 @@ const agentOptions = [
 ];
 
 export default function InboxPage() {
+  const { user } = useAuth();
+  const { business } = useBusiness();
+  const { toast } = useToast();
   const [selectedConvo, setSelectedConvo] = useState(1);
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, sender: "customer", content: "Hi, what's the pricing for the growth plan?", time: "15m ago" },
@@ -100,32 +108,122 @@ export default function InboxPage() {
   const [activeAgent, setActiveAgent] = useState("sales");
   const [showOffers, setShowOffers] = useState(false);
   const [showProfile, setShowProfile] = useState(true);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const profile = customerProfiles[selectedConvo];
   const convo = conversations.find((c) => c.id === selectedConvo);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isStreaming) return;
+    const userText = inputValue.trim();
     const newMsg: Message = {
-      id: messages.length + 100,
+      id: Date.now(),
       sender: "customer",
-      content: inputValue,
+      content: userText,
       time: "now",
     };
     setMessages((prev) => [...prev, newMsg]);
     setInputValue("");
+    setIsStreaming(true);
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: prev.length + 101,
-          sender: "agent",
-          content: "Got it! I'll get back to you shortly with the details.",
-          time: "now",
+    // Build chat history for AI
+    const chatHistory = messages
+      .filter((m) => m.sender !== "system")
+      .map((m) => ({
+        role: m.sender === "customer" ? "user" as const : "assistant" as const,
+        content: m.content,
+      }));
+    chatHistory.push({ role: "user", content: userText });
+
+    // Create placeholder assistant message
+    const assistantId = Date.now() + 1;
+    setMessages((prev) => [...prev, { id: assistantId, sender: "agent", content: "", time: "now" }]);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      ]);
-    }, 1200);
+        body: JSON.stringify({
+          messages: chatHistory,
+          agent_type: activeAgent,
+          business_id: business?.id,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+        if (resp.status === 429) {
+          toast({ variant: "destructive", title: "Rate limited", description: "Please try again shortly." });
+        } else if (resp.status === 402) {
+          toast({ variant: "destructive", title: "Usage limit reached", description: "Please add credits." });
+        } else {
+          toast({ variant: "destructive", title: "Error", description: err.error || "Failed to get response." });
+        }
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+        setIsStreaming(false);
+        return;
+      }
+
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let assistantSoFar = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantSoFar += content;
+              const snapshot = assistantSoFar;
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
+              );
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Streaming error:", e);
+      toast({ variant: "destructive", title: "Error", description: "Failed to connect to agent." });
+      setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+    } finally {
+      setIsStreaming(false);
+    }
   };
 
   const handleShareChannel = (channelKey: string) => {
@@ -345,7 +443,7 @@ export default function InboxPage() {
                   <div className="flex justify-center">
                     <div className="px-3 py-1.5 bg-secondary/50 border border-border rounded-full">
                       <p className="text-[10px] font-mono text-muted-foreground">{msg.content}</p>
-                    </div>
+            </div>
                   </div>
                 ) : (
                   <div className={`flex ${msg.sender === "agent" ? "justify-end" : "justify-start"}`}>
@@ -441,6 +539,7 @@ export default function InboxPage() {
                 )}
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -451,14 +550,16 @@ export default function InboxPage() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Type as admin or let agent handle..."
-                className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                placeholder={isStreaming ? "Agent is responding..." : "Type as admin or let agent handle..."}
+                disabled={isStreaming}
+                className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
               />
               <button
                 onClick={handleSend}
-                className="flex items-center justify-center w-9 h-9 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
+                disabled={isStreaming || !inputValue.trim()}
+                className="flex items-center justify-center w-9 h-9 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
+                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </div>
           </div>
