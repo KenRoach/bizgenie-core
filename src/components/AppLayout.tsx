@@ -25,9 +25,9 @@ const navItems = [
 ];
 
 const agents = [
-  { name: "Sales Agent", status: "active" as const },
-  { name: "Ops Agent", status: "active" as const },
-  { name: "CFO Agent", status: "idle" as const },
+  { name: "CRM Agent", status: "active" as const },
+  { name: "Follow Up Agent", status: "active" as const },
+  { name: "Support Agent", status: "idle" as const },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

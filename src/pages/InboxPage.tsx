@@ -84,9 +84,9 @@ const channelOptions = [
 ];
 
 const agentOptions = [
-  { key: "sales", label: "Sales Agent", icon: Star, status: "active" as const },
-  { key: "ops", label: "Ops Agent", icon: Zap, status: "active" as const },
-  { key: "cfo", label: "CFO Agent", icon: DollarSign, status: "idle" as const },
+  { key: "crm", label: "CRM Agent", icon: Star, status: "active" as const },
+  { key: "followup", label: "Follow Up Agent", icon: Zap, status: "active" as const },
+  { key: "support", label: "Support Agent", icon: DollarSign, status: "idle" as const },
 ];
 
 export default function InboxPage() {
@@ -105,7 +105,7 @@ export default function InboxPage() {
   const [sharedChannels, setSharedChannels] = useState<Record<string, string>>({});
   const [editingChannel, setEditingChannel] = useState<string | null>(null);
   const [channelInput, setChannelInput] = useState("");
-  const [activeAgent, setActiveAgent] = useState("sales");
+  const [activeAgent, setActiveAgent] = useState("crm");
   const [showOffers, setShowOffers] = useState(false);
   const [showProfile, setShowProfile] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
