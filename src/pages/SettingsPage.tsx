@@ -73,8 +73,8 @@ export default function SettingsPage() {
     const { error } = await supabase.from("agent_configurations").insert({
       business_id: business.id,
       agent_type: agentType,
-      name: `${agentType.charAt(0).toUpperCase() + agentType.slice(1)} Agent`,
-      system_prompt: `You are a ${agentType} agent for ${business.name}. Help the business owner manage their ${agentType === "sales" ? "leads and sales pipeline" : agentType === "ops" ? "orders and fulfillment" : "financial health and margins"}.`,
+      name: agentType === "crm" ? "CRM Agent" : agentType === "followup" ? "Follow Up Agent" : "Support Agent",
+      system_prompt: `You are a ${agentType === "crm" ? "CRM" : agentType === "followup" ? "Follow Up" : "Support"} agent for ${business.name}. Help the business owner manage their ${agentType === "crm" ? "contacts and customer relationships" : agentType === "followup" ? "follow-ups and re-engagement" : "customer support and issue resolution"}.`,
       model: "google/gemini-3-flash-preview",
     });
     if (error) {
@@ -124,7 +124,7 @@ export default function SettingsPage() {
     const { error } = await supabase.from("openclaw_configs").insert({
       business_id: business.id,
       name: "default",
-      router_config: { default_agent: "sales", fallback_agent: "ops" },
+      router_config: { default_agent: "crm", fallback_agent: "followup" },
       retry_policy: { max_retries: 3, backoff_ms: 1000 },
     });
     if (error) {
@@ -141,7 +141,7 @@ export default function SettingsPage() {
     { key: "openclaw", label: "OpenClaw", icon: Cpu },
   ] as const;
 
-  const missingAgents = (["sales", "ops", "cfo"] as const).filter(
+  const missingAgents = (["crm", "followup", "support"] as const).filter(
     (t) => !agents.some((a) => a.agent_type === t)
   );
 

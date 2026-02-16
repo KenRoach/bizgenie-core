@@ -92,7 +92,7 @@ export default function InsightsPage() {
         {/* CFO Alerts */}
         <div className="bg-card border border-border rounded-md">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h2 className="text-sm font-semibold text-foreground">CFO Agent Alerts</h2>
+            <h2 className="text-sm font-semibold text-foreground">Support Agent Alerts</h2>
             <span className="kitz-badge-warning">{alerts.length} ACTIVE</span>
           </div>
           <div className="p-4 space-y-3">

@@ -143,9 +143,9 @@ export default function DashboardPage() {
           </div>
           <div className="p-4 space-y-4">
             {[
-              { name: "Sales Agent", tasks: 12, resolved: 9, status: "Qualifying lead — Ahmed R." },
-              { name: "Ops Agent", tasks: 8, resolved: 7, status: "Tracking delivery #1038" },
-              { name: "CFO Agent", tasks: 5, resolved: 5, status: "Margin report generated" },
+              { name: "CRM Agent", tasks: 12, resolved: 9, status: "Qualifying lead — Ahmed R." },
+              { name: "Follow Up Agent", tasks: 8, resolved: 7, status: "Tracking delivery #1038" },
+              { name: "Support Agent", tasks: 5, resolved: 5, status: "Margin report generated" },
             ].map((agent) => (
               <div key={agent.name} className="space-y-2">
                 <div className="flex items-center justify-between">
