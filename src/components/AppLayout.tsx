@@ -10,7 +10,10 @@ import {
   ChevronLeft,
   Menu,
   Zap,
+  Settings,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -18,6 +21,7 @@ const navItems = [
   { path: "/orders", label: "Orders", icon: ShoppingCart },
   { path: "/insights", label: "Insights", icon: BarChart3 },
   { path: "/inbox", label: "Inbox", icon: MessageSquare },
+  { path: "/settings", label: "Settings", icon: Settings },
 ];
 
 const agents = [
@@ -28,6 +32,7 @@ const agents = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -117,6 +122,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Sign out */}
+        {!collapsed && (
+          <div className="px-3 pb-3">
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-xs text-sidebar-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
           </div>
         )}
       </aside>
