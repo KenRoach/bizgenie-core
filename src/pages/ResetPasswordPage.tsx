@@ -45,7 +45,7 @@ export default function ResetPasswordPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
             <Zap className="w-6 h-6 text-primary" />
-            <span className="font-mono font-bold text-xl tracking-wider text-foreground">KITZ</span>
+            <span className="font-mono font-bold text-xl tracking-wider text-foreground">xyz88.io</span>
           </div>
           <p className="text-sm text-muted-foreground">Set your new password</p>
         </div>

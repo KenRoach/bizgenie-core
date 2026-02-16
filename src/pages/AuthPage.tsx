@@ -40,11 +40,11 @@ export default function AuthPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
             <Zap className="w-6 h-6 text-primary" />
-            <span className="font-mono font-bold text-xl tracking-wider text-foreground">KITZ</span>
-            <span className="text-xs font-mono text-muted-foreground">BOS</span>
+            <span className="font-mono font-bold text-xl tracking-wider text-foreground">xyz88</span>
+            <span className="text-xs font-mono text-muted-foreground">.io</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {mode === "login" ? "Sign in to your command center" : "Set up your account"}
+            {mode === "login" ? "Sign in to your dashboard" : "Set up your account"}
           </p>
         </div>
 
