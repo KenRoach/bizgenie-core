@@ -22,6 +22,8 @@ const TOOL_ICONS: Record<string, string> = {
   create_order: "🛒",
   web_scrape: "🌐",
   delegate_to_agent: "📨",
+  create_goal: "🎯",
+  spawn_agent: "🤖",
 };
 
 interface AgentChatPanelProps {

@@ -32,15 +32,15 @@ const CEO_TOOLS = [
     type: "function",
     function: {
       name: "spawn_agent",
-      description: "Create a new AI agent configuration. Use when you identify a capability gap that needs a dedicated agent.",
+      description: "Create a new AI agent configuration. Use when you identify a capability gap that needs a dedicated agent. You can spawn multiple agents in sequence.",
       parameters: {
         type: "object",
         properties: {
           name: { type: "string", description: "Agent display name" },
-          agent_type: { type: "string", enum: ["sales", "ops", "cfo", "marketing", "support", "onboarding", "analytics", "growth", "content", "retention", "custom"], description: "Agent type" },
-          system_prompt: { type: "string", description: "The agent's system prompt defining its role and behavior" },
-          nhi_identifier: { type: "string", description: "Non-human identity ID (e.g. marketing-agent-001)" },
-          model: { type: "string", description: "AI model to use. Default: google/gemini-3-flash-preview" },
+          agent_type: { type: "string", enum: ["sales", "ops", "cfo", "cto", "cpo", "cro", "coo", "marketing", "support", "onboarding", "analytics", "growth", "content", "retention", "custom"], description: "Agent type" },
+          system_prompt: { type: "string", description: "The agent's system prompt defining its role, behavior, goals, and operating rules. Make it comprehensive." },
+          nhi_identifier: { type: "string", description: "Non-human identity ID (e.g. coo-agent-001)" },
+          model: { type: "string", description: "AI model to use. Default: google/gemini-3-flash-preview. Use google/gemini-2.5-flash for cost-sensitive agents." },
         },
         required: ["name", "agent_type", "system_prompt", "nhi_identifier"],
         additionalProperties: false,
@@ -100,6 +100,111 @@ const CEO_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "delegate_to_agent",
+      description: "Send a message to another agent and get their response. Use for inter-agent collaboration — e.g., ask the CFO about margin, the CTO about infra, the CPO about feedback.",
+      parameters: {
+        type: "object",
+        properties: {
+          target_agent_type: { type: "string", description: "Type of agent to delegate to: sales, ops, cfo, cto, cpo, cro, coo, marketing, support, analytics, growth, content, retention, custom" },
+          message: { type: "string", description: "The message/question to send to the other agent" },
+        },
+        required: ["target_agent_type", "message"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_scrape",
+      description: "Scrape a web page and extract its text content. Use for research, competitor analysis, market intelligence.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "The URL to scrape" },
+          extract_links: { type: "boolean", description: "Also extract links from the page (default false)" },
+        },
+        required: ["url"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_contact",
+      description: "Create a new contact in the CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Contact full name" },
+          email: { type: "string", description: "Email address (optional)" },
+          phone: { type: "string", description: "Phone number (optional)" },
+          pipeline_stage: { type: "string", description: "Pipeline stage (default: new)" },
+          tags: { type: "array", items: { type: "string" }, description: "Tags (optional)" },
+          notes: { type: "string", description: "Notes (optional)" },
+        },
+        required: ["name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_order",
+      description: "Create a new order.",
+      parameters: {
+        type: "object",
+        properties: {
+          order_number: { type: "string", description: "Order number/ID" },
+          contact_id: { type: "string", description: "UUID of the contact (optional)" },
+          total: { type: "number", description: "Order total amount" },
+          currency: { type: "string", description: "Currency code (default: USD)" },
+          status: { type: "string", description: "Order status (default: pending)" },
+          payment_status: { type: "string", description: "Payment status (default: unpaid)" },
+        },
+        required: ["order_number", "total"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_contacts",
+      description: "Search CRM contacts.",
+      parameters: {
+        type: "object",
+        properties: {
+          search: { type: "string", description: "Search by name or email (optional)" },
+          pipeline_stage: { type: "string", description: "Filter by stage (optional)" },
+          limit: { type: "number", description: "Max results (default 20)" },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_orders",
+      description: "Search orders.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status (optional)" },
+          limit: { type: "number", description: "Max results (default 20)" },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 // Execute a tool call against the database
@@ -107,7 +212,8 @@ async function executeTool(
   supabase: ReturnType<typeof createClient>,
   businessId: string,
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  context: { supabaseUrl: string; supabaseAnonKey: string }
 ): Promise<{ success: boolean; result: string; data?: unknown }> {
   try {
     switch (toolName) {
@@ -125,13 +231,34 @@ async function executeTool(
         return { success: true, result: `✅ Goal created: "${args.title}" (${args.goal_type})`, data };
       }
       case "spawn_agent": {
+        // Check if agent with same type already exists
+        const { data: existing } = await supabase
+          .from("agent_configurations")
+          .select("id, name")
+          .eq("business_id", businessId)
+          .eq("agent_type", args.agent_type)
+          .maybeSingle();
+
+        if (existing) {
+          // Update existing agent instead
+          const { error } = await supabase.from("agent_configurations").update({
+            name: args.name as string,
+            system_prompt: args.system_prompt as string,
+            nhi_identifier: args.nhi_identifier as string,
+            model: (args.model as string) || "google/gemini-3-flash-preview",
+            is_active: true,
+          }).eq("id", existing.id);
+          if (error) return { success: false, result: `Failed to update agent: ${error.message}` };
+          return { success: true, result: `✅ Agent updated: "${args.name}" (${args.agent_type}) — NHI: ${args.nhi_identifier}`, data: { ...existing, updated: true } };
+        }
+
         const { data, error } = await supabase.from("agent_configurations").insert({
           business_id: businessId,
-          name: args.name,
+          name: args.name as string,
           agent_type: args.agent_type as string,
-          system_prompt: args.system_prompt,
-          nhi_identifier: args.nhi_identifier,
-          model: args.model || "google/gemini-3-flash-preview",
+          system_prompt: args.system_prompt as string,
+          nhi_identifier: args.nhi_identifier as string,
+          model: (args.model as string) || "google/gemini-3-flash-preview",
           is_active: true,
         }).select().single();
         if (error) return { success: false, result: `Failed to spawn agent: ${error.message}` };
@@ -171,6 +298,116 @@ async function executeTool(
         }).select().single();
         if (error) return { success: false, result: `Failed to log feedback: ${error.message}` };
         return { success: true, result: `✅ Feedback logged: "${args.title}" (${args.priority})`, data };
+      }
+      case "delegate_to_agent": {
+        try {
+          const { data: targetAgent } = await supabase
+            .from("agent_configurations")
+            .select("id, name, agent_type, system_prompt, model, nhi_identifier")
+            .eq("business_id", businessId)
+            .eq("agent_type", args.target_agent_type)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (!targetAgent) {
+            return { success: false, result: `No active ${args.target_agent_type} agent found. Spawn one first with spawn_agent.` };
+          }
+
+          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+          if (!LOVABLE_API_KEY) return { success: false, result: "AI key not configured" };
+
+          const delegateSystemPrompt = targetAgent.system_prompt || `You are a ${targetAgent.agent_type} agent named ${targetAgent.name}. Answer concisely.`;
+
+          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: targetAgent.model || "google/gemini-3-flash-preview",
+              messages: [
+                { role: "system", content: delegateSystemPrompt },
+                { role: "user", content: args.message as string },
+              ],
+              stream: false,
+            }),
+          });
+
+          if (!aiResp.ok) return { success: false, result: `Delegation failed: HTTP ${aiResp.status}` };
+
+          const aiData = await aiResp.json();
+          const response = aiData.choices?.[0]?.message?.content || "No response";
+
+          await supabase.from("agent_audit_log").insert({
+            business_id: businessId,
+            agent_id: targetAgent.id,
+            agent_nhi: targetAgent.nhi_identifier,
+            tool_used: "delegate_to_agent",
+            action: "agent_delegation",
+            risk_flag: "low",
+            human_approval: "auto_approved",
+            payload: { from_agent: "ceo-prime-001", message: args.message, response_preview: response.slice(0, 200) },
+          });
+
+          return { success: true, result: `📨 ${targetAgent.name} responded`, data: { agent: targetAgent.name, agent_type: targetAgent.agent_type, response } };
+        } catch (e) {
+          return { success: false, result: `Delegation error: ${e instanceof Error ? e.message : "Unknown"}` };
+        }
+      }
+      case "web_scrape": {
+        try {
+          const scrapeUrl = `${context.supabaseUrl}/functions/v1/web-scrape`;
+          const resp = await fetch(scrapeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${context.supabaseAnonKey}` },
+            body: JSON.stringify({ url: args.url, extract_links: args.extract_links || false }),
+          });
+          const scrapeData = await resp.json();
+          if (!scrapeData.success) return { success: false, result: `Scrape failed: ${scrapeData.error}` };
+          return { success: true, result: `✅ Scraped "${scrapeData.data.title}" (${scrapeData.data.content_length} chars)`, data: scrapeData.data };
+        } catch (e) {
+          return { success: false, result: `Scrape error: ${e instanceof Error ? e.message : "Unknown"}` };
+        }
+      }
+      case "create_contact": {
+        const { data, error } = await supabase.from("contacts").insert({
+          business_id: businessId,
+          name: args.name,
+          email: args.email || null,
+          phone: args.phone || null,
+          pipeline_stage: args.pipeline_stage || "new",
+          tags: args.tags || [],
+          notes: args.notes || null,
+        }).select().single();
+        if (error) return { success: false, result: `Failed: ${error.message}` };
+        return { success: true, result: `✅ Contact created: "${args.name}"`, data };
+      }
+      case "create_order": {
+        const { data, error } = await supabase.from("orders").insert({
+          business_id: businessId,
+          order_number: args.order_number,
+          contact_id: args.contact_id || null,
+          total: args.total || 0,
+          currency: args.currency || "USD",
+          status: args.status || "pending",
+          payment_status: args.payment_status || "unpaid",
+        }).select().single();
+        if (error) return { success: false, result: `Failed: ${error.message}` };
+        return { success: true, result: `✅ Order created: #${args.order_number} ($${args.total})`, data };
+      }
+      case "query_contacts": {
+        let query = supabase.from("contacts").select("id, name, email, phone, pipeline_stage, tags, lead_score, total_revenue").eq("business_id", businessId);
+        if (args.pipeline_stage) query = query.eq("pipeline_stage", args.pipeline_stage);
+        if (args.search) query = query.or(`name.ilike.%${args.search}%,email.ilike.%${args.search}%`);
+        const { data, error } = await query.limit((args.limit as number) || 20).order("created_at", { ascending: false });
+        if (error) return { success: false, result: `Query failed: ${error.message}` };
+        return { success: true, result: `Found ${data.length} contacts`, data };
+      }
+      case "query_orders": {
+        let query = supabase.from("orders").select("id, order_number, status, payment_status, total, currency, created_at").eq("business_id", businessId);
+        if (args.status) query = query.eq("status", args.status);
+        const { data, error } = await query.limit((args.limit as number) || 20).order("created_at", { ascending: false });
+        if (error) return { success: false, result: `Query failed: ${error.message}` };
+        const totalRevenue = data.reduce((sum: number, o: { total: number }) => sum + o.total, 0);
+        return { success: true, result: `Found ${data.length} orders (total: $${totalRevenue.toFixed(2)})`, data };
       }
       default:
         return { success: false, result: `Unknown tool: ${toolName}` };
@@ -250,7 +487,7 @@ serve(async (req) => {
     const quarterlyGoals = activeGoals.filter(g => g.goal_type === "quarterly");
     const weeklyGoals = activeGoals.filter(g => g.goal_type === "weekly");
 
-    const systemPrompt = `You are the Virtual CEO of ${businessName} (Kitz) — the first AI employee of this startup. You are AGENTIC: you don't just advise, you ACT. You have tools to create goals, spawn agents, save knowledge, and log feedback. USE THEM proactively.
+    const systemPrompt = `You are the Virtual CEO of ${businessName} (Kitz) — the first AI employee of this startup. You are AGENTIC: you don't just advise, you ACT. You have tools to create goals, spawn agents, save knowledge, log feedback, delegate to other agents, scrape the web, create contacts, and create orders. USE THEM proactively.
 
 ## YOUR IDENTITY
 - Name: CEO Agent (NHI: ceo-prime-001)
@@ -265,8 +502,21 @@ You MUST use your tools to take action, not just recommend. When you:
 - Learn something important → call add_knowledge immediately
 - Hear feedback → call log_feedback immediately
 - Review progress → call update_goal_progress
+- Need specialist input → call delegate_to_agent
+- Need market/competitor intel → call web_scrape
+- Need to add a prospect → call create_contact
+- Need to log a sale → call create_order
 
 You can call MULTIPLE tools in a single response. Be proactive. Act first, explain after.
+
+## TEAM MANAGEMENT — SPAWNING AGENTS
+When asked to create an executive team or agents:
+- Use spawn_agent for EACH agent, one at a time
+- Write comprehensive system_prompt for each agent that defines their role, responsibilities, operating rules, and behavior style
+- Use descriptive nhi_identifier (e.g. coo-exec-001, cfo-exec-001)
+- Available agent types: sales, ops, cfo, cto, cpo, cro, coo, marketing, support, onboarding, analytics, growth, content, retention, custom
+- If an agent of that type already exists, spawn_agent will UPDATE it instead of creating a duplicate
+- After spawning, delegate a first task to each agent to verify they're working
 
 ## WHAT KITZ IS
 Kitz is the AI-native business operating system for small businesses in LATAM and beyond. It replaces 10+ SaaS tools with one intelligent platform powered by AI agents.
@@ -275,7 +525,7 @@ Kitz is the AI-native business operating system for small businesses in LATAM an
 - Business: ${businessName}
 - Contacts: ${contactCount}
 - Orders: ${orderCount}
-- Active Agents: ${agents.filter(a => a.is_active).map(a => `${a.name} (${a.nhi_identifier})`).join(", ") || "None besides you"}
+- Active Agents: ${agents.filter(a => a.is_active).map(a => `${a.name} (${a.nhi_identifier || a.agent_type})`).join(", ") || "None besides you"}
 - Active Campaigns: ${campaigns.filter(c => c.status === "active").map(c => c.name).join(", ") || "None"}
 
 ## EXISTING GOALS
@@ -298,16 +548,10 @@ ${newComplaints.slice(0, 3).map(f => `• [${f.category}] ${f.title}`).join("\n"
 - If no AOP exists, your FIRST action is creating one with create_goal.
 - Speak in the language the owner uses (Spanish/English).
 - Every conversation should end with concrete actions taken and next steps.
+- When spawning agents, create comprehensive system prompts — don't just name them.
 
 ## AUTO-KNOWLEDGE CAPTURE — MANDATORY
-After EVERY conversation, you MUST call add_knowledge at least once to capture the most important insight, decision, or learning from the exchange. Categories:
-- "company" — decisions about team, structure, strategy
-- "product" — product learnings, feature decisions, technical choices
-- "market" — customer insights, competitor intel, market signals
-- "playbook" — repeatable processes, best practices, SOPs
-- "competitor" — competitive landscape, positioning
-- "general" — anything else worth remembering
-If the user shares information about customers, pricing, market, product, or strategy — ALWAYS save it immediately with add_knowledge. Your memory IS the knowledge base.`;
+After EVERY conversation, you MUST call add_knowledge at least once to capture the most important insight, decision, or learning from the exchange.`;
 
 
     // Agent Guard check
@@ -328,14 +572,16 @@ If the user shares information about customers, pricing, market, product, or str
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Agentic loop: call AI, execute tool calls, feed results back, repeat until no more tool calls
+    // Agentic loop: call AI, execute tool calls, feed results back, repeat
     const conversationMessages = [
       { role: "system", content: systemPrompt },
       ...messages,
     ];
     const toolResults: Array<{ tool: string; args: Record<string, unknown>; result: string; success: boolean }> = [];
     let loopCount = 0;
-    const MAX_LOOPS = 5; // Prevent infinite loops
+    const MAX_LOOPS = 12; // High limit for bulk agent spawning (6 agents + knowledge + goals)
+
+    const toolContext = { supabaseUrl, supabaseAnonKey };
 
     while (loopCount < MAX_LOOPS) {
       loopCount++;
@@ -347,7 +593,7 @@ If the user shares information about customers, pricing, market, product, or str
           model: "google/gemini-3-flash-preview",
           messages: conversationMessages,
           tools: CEO_TOOLS,
-          stream: false, // Non-streaming for tool calling phase
+          stream: false,
         }),
       });
 
@@ -369,10 +615,8 @@ If the user shares information about customers, pricing, market, product, or str
 
       if (!message) break;
 
-      // Add the assistant message to conversation
       conversationMessages.push(message);
 
-      // Check for tool calls
       if (message.tool_calls && message.tool_calls.length > 0) {
         for (const tc of message.tool_calls) {
           const fnName = tc.function.name;
@@ -381,10 +625,9 @@ If the user shares information about customers, pricing, market, product, or str
 
           console.log(`CEO executing tool: ${fnName}`, fnArgs);
 
-          const result = await executeTool(supabase, business_id, fnName, fnArgs);
+          const result = await executeTool(supabase, business_id, fnName, fnArgs, toolContext);
           toolResults.push({ tool: fnName, args: fnArgs, result: result.result, success: result.success });
 
-          // Log to audit
           await supabase.from("agent_audit_log").insert({
             business_id,
             agent_nhi: "ceo-prime-001",
@@ -395,23 +638,19 @@ If the user shares information about customers, pricing, market, product, or str
             payload: { args: fnArgs, result: result.result, success: result.success },
           });
 
-          // Add tool result to conversation for the AI to see
           conversationMessages.push({
             role: "tool",
             tool_call_id: tc.id,
             content: JSON.stringify({ success: result.success, result: result.result }),
           });
         }
-        // Continue loop so AI can see tool results and potentially call more tools or give final answer
         continue;
       }
 
-      // No tool calls — we have a final text response. Now stream it.
       break;
     }
 
-    // Now do a final streaming call with the full conversation (including tool results)
-    // so the user gets a nice streamed summary
+    // Stream the final response
     const streamResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -428,17 +667,12 @@ If the user shares information about customers, pricing, market, product, or str
       return new Response(JSON.stringify({ error: "AI streaming error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Build a custom SSE stream that first emits tool actions, then streams the AI response
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
       async start(controller) {
-        // 1. Emit tool actions as special SSE events
         if (toolResults.length > 0) {
-          const actionsEvent = `data: ${JSON.stringify({ type: "tool_actions", actions: toolResults })}\n\n`;
-          controller.enqueue(encoder.encode(actionsEvent));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_actions", actions: toolResults })}\n\n`));
         }
-
-        // 2. Pipe through the AI stream
         const reader = streamResponse.body!.getReader();
         try {
           while (true) {
@@ -453,7 +687,6 @@ If the user shares information about customers, pricing, market, product, or str
       },
     });
 
-    // Log to audit & events
     await Promise.all([
       supabase.from("agent_audit_log").insert({
         business_id,
@@ -474,10 +707,9 @@ If the user shares information about customers, pricing, market, product, or str
       }),
     ]);
 
-    // Background: extract knowledge if the CEO didn't already call add_knowledge
+    // Background knowledge extraction
     const alreadySavedKnowledge = toolResults.some(t => t.tool === "add_knowledge" && t.success);
     if (!alreadySavedKnowledge && messages.length >= 2) {
-      // Fire-and-forget extraction
       (async () => {
         try {
           const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -486,7 +718,7 @@ If the user shares information about customers, pricing, market, product, or str
             body: JSON.stringify({
               model: "google/gemini-2.5-flash-lite",
               messages: [
-                { role: "system", content: `Extract the single most important insight, decision, or fact from this conversation. Return a JSON object with: category (one of: company, product, market, playbook, competitor, general), title (short), content (1-2 sentences). If the conversation has no meaningful insight, return {"skip": true}.` },
+                { role: "system", content: `Extract the single most important insight from this conversation. Return JSON: {category, title, content}. If none, return {"skip":true}.` },
                 ...messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
               ],
               stream: false,
@@ -495,7 +727,6 @@ If the user shares information about customers, pricing, market, product, or str
           if (extractionResponse.ok) {
             const extractData = await extractionResponse.json();
             const text = extractData.choices?.[0]?.message?.content || "";
-            // Parse JSON from response
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]);
@@ -508,7 +739,6 @@ If the user shares information about customers, pricing, market, product, or str
                   source: "auto-extract",
                   created_by: "ceo-prime-001",
                 });
-                console.log("Auto-extracted knowledge:", parsed.title);
               }
             }
           }
