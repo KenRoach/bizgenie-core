@@ -48,9 +48,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null; is_active: boolean }[]>([]);
   const [chatAgent, setChatAgent] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null } | null>(null);
 
-  // Clear chat when route changes
-  useEffect(() => { setChatAgent(null); }, [location.pathname]);
-
   useEffect(() => {
     if (!business?.id) return;
     const fetchAgents = async () => {

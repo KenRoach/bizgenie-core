@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Bot, Send, Loader2, X, Zap, ArrowLeft } from "lucide-react";
 import ManagerThinking from "@/components/ManagerThinking";
 
+const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+
 type ToolAction = { tool: string; args: Record<string, unknown>; result: string; success: boolean };
 type Msg = { role: "user" | "assistant" | "actions"; content: string; streamId?: string; actions?: ToolAction[] };
 
@@ -36,12 +38,32 @@ export default function AgentChatPanel({ agent, onClose }: AgentChatPanelProps) 
   const { business } = useBusiness();
   const { toast } = useToast();
 
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const storageKey = `agent-chat-${agent.id}`;
+
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const { msgs, ts } = JSON.parse(stored);
+        if (Date.now() - ts < FIVE_DAYS_MS) return msgs;
+        localStorage.removeItem(storageKey);
+      }
+    } catch {}
+    return [];
+  });
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [userMessage, setUserMessage] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      const saveable = messages.filter(m => !m.streamId).map(({ role, content, actions }) => ({ role, content, actions }));
+      localStorage.setItem(storageKey, JSON.stringify({ msgs: saveable, ts: Date.now() }));
+    }
+  }, [messages, storageKey]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
