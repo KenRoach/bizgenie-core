@@ -247,6 +247,53 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          business_id: string
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          key_label: string
+          key_value: string
+          notes: string | null
+          service_name: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          key_label: string
+          key_value: string
+          notes?: string | null
+          service_name: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          key_label?: string
+          key_value?: string
+          notes?: string | null
+          service_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           created_at: string
