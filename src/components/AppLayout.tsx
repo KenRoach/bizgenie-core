@@ -13,6 +13,9 @@ import {
   Zap,
   Settings,
   LogOut,
+  Wrench,
+  ScrollText,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -23,6 +26,9 @@ const navItems = [
   { path: "/campaigns", label: "Campaigns", icon: Mail },
   { path: "/insights", label: "Insights", icon: BarChart3 },
   { path: "/inbox", label: "Inbox", icon: MessageSquare },
+  { path: "/tools", label: "Tool Registry", icon: Wrench },
+  { path: "/audit", label: "Audit Log", icon: ScrollText },
+  { path: "/security", label: "Security", icon: ShieldAlert },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 

@@ -39,11 +39,13 @@ serve(async (req) => {
     // Fetch agent config
     let systemPrompt = "You are a helpful AI business assistant. Be concise and action-oriented.";
     let model = "google/gemini-3-flash-preview";
+    let agentId: string | null = null;
+    let agentNhi: string | null = null;
 
     if (business_id && agent_type) {
       const { data: agentConfig } = await supabase
         .from("agent_configurations")
-        .select("system_prompt, model")
+        .select("system_prompt, model, id, nhi_identifier")
         .eq("business_id", business_id)
         .eq("agent_type", agent_type)
         .eq("is_active", true)
@@ -52,6 +54,33 @@ serve(async (req) => {
       if (agentConfig) {
         if (agentConfig.system_prompt) systemPrompt = agentConfig.system_prompt;
         if (agentConfig.model) model = agentConfig.model;
+        agentId = agentConfig.id;
+        agentNhi = agentConfig.nhi_identifier;
+      }
+    }
+
+    // Agent Guard: policy enforcement
+    if (business_id) {
+      const guardUrl = `${supabaseUrl}/functions/v1/agent-guard`;
+      const lastUserMsg = messages?.filter((m: { role: string }) => m.role === "user").pop()?.content || "";
+      const guardRes = await fetch(guardUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}` },
+        body: JSON.stringify({
+          business_id,
+          agent_id: agentId,
+          agent_nhi: agentNhi,
+          tool_name: "ai_chat",
+          action: `${agent_type || "general"}_chat`,
+          user_input: lastUserMsg,
+        }),
+      });
+      if (!guardRes.ok) {
+        const guardBody = await guardRes.json().catch(() => ({ reason: "Policy check failed" }));
+        return new Response(JSON.stringify({ error: guardBody.reason || "Blocked by security policy" }), {
+          status: guardRes.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 

@@ -1,1 +1,4 @@
 project_id = "imomeflyfjwfwfvckegc"
+
+[functions.agent-guard]
+verify_jwt = false

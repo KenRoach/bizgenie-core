@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_audit_log: {
+        Row: {
+          action: string
+          agent_id: string | null
+          agent_nhi: string | null
+          business_id: string
+          cost_units: number | null
+          created_at: string
+          human_approval: string | null
+          id: string
+          payload: Json | null
+          risk_flag: string | null
+          tool_used: string | null
+        }
+        Insert: {
+          action: string
+          agent_id?: string | null
+          agent_nhi?: string | null
+          business_id: string
+          cost_units?: number | null
+          created_at?: string
+          human_approval?: string | null
+          id?: string
+          payload?: Json | null
+          risk_flag?: string | null
+          tool_used?: string | null
+        }
+        Update: {
+          action?: string
+          agent_id?: string | null
+          agent_nhi?: string | null
+          business_id?: string
+          cost_units?: number | null
+          created_at?: string
+          human_approval?: string | null
+          id?: string
+          payload?: Json | null
+          risk_flag?: string | null
+          tool_used?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_audit_log_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_audit_log_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_configurations: {
         Row: {
           agent_type: string
@@ -22,9 +79,13 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean | null
+          last_token_at: string | null
           model: string | null
           name: string
+          nhi_identifier: string | null
+          permissions: Json | null
           system_prompt: string | null
+          token_ttl_minutes: number | null
           updated_at: string
         }
         Insert: {
@@ -34,9 +95,13 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          last_token_at?: string | null
           model?: string | null
           name: string
+          nhi_identifier?: string | null
+          permissions?: Json | null
           system_prompt?: string | null
+          token_ttl_minutes?: number | null
           updated_at?: string
         }
         Update: {
@@ -46,9 +111,13 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          last_token_at?: string | null
           model?: string | null
           name?: string
+          nhi_identifier?: string | null
+          permissions?: Json | null
           system_prompt?: string | null
+          token_ttl_minutes?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -300,6 +369,60 @@ export type Database = {
           },
         ]
       }
+      emergency_controls: {
+        Row: {
+          business_id: string
+          config: Json | null
+          control_type: string
+          created_at: string
+          id: string
+          is_engaged: boolean | null
+          target_agent_id: string | null
+          triggered_at: string | null
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          config?: Json | null
+          control_type: string
+          created_at?: string
+          id?: string
+          is_engaged?: boolean | null
+          target_agent_id?: string | null
+          triggered_at?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          config?: Json | null
+          control_type?: string
+          created_at?: string
+          id?: string
+          is_engaged?: boolean | null
+          target_agent_id?: string | null
+          triggered_at?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_controls_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_controls_target_agent_id_fkey"
+            columns: ["target_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_logs: {
         Row: {
           actor_id: string | null
@@ -512,6 +635,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tool_registry: {
+        Row: {
+          business_id: string
+          created_at: string
+          data_scope: Json | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          max_calls_per_minute: number
+          name: string
+          risk_level: string
+          total_invocations: number | null
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          data_scope?: Json | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          max_calls_per_minute?: number
+          name: string
+          risk_level?: string
+          total_invocations?: number | null
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          data_scope?: Json | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          max_calls_per_minute?: number
+          name?: string
+          risk_level?: string
+          total_invocations?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_registry_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
