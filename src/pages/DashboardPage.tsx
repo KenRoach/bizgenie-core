@@ -206,6 +206,63 @@ export default function DashboardPage() {
     };
 
     load();
+
+    // Realtime subscriptions
+    const channel = supabase
+      .channel(`dashboard-${business.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "event_logs", filter: `business_id=eq.${business.id}` },
+        () => {
+          // Refetch events on any change
+          supabase
+            .from("event_logs")
+            .select("*")
+            .eq("business_id", business.id)
+            .order("created_at", { ascending: false })
+            .limit(20)
+            .then(({ data }) => { if (data) setEvents(data); });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "contacts", filter: `business_id=eq.${business.id}` },
+        () => {
+          supabase
+            .from("contacts")
+            .select("id, total_revenue, pipeline_stage")
+            .eq("business_id", business.id)
+            .then(({ data }) => {
+              if (data) {
+                const revenue = data.reduce((sum, c) => sum + Number(c.total_revenue || 0), 0);
+                const leads = data.filter((c) => c.pipeline_stage && !["closed"].includes(c.pipeline_stage)).length;
+                setMetrics((prev) => ({ ...prev, revenue, leads }));
+              }
+            });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders", filter: `business_id=eq.${business.id}` },
+        () => {
+          supabase
+            .from("orders")
+            .select("id, total, status, payment_status")
+            .eq("business_id", business.id)
+            .then(({ data }) => {
+              if (data) {
+                const openOrders = data.filter((o) => o.status && !["delivered", "cancelled"].includes(o.status)).length;
+                const deliveredOrders = data.filter((o) => o.status === "delivered").length;
+                setMetrics((prev) => ({ ...prev, openOrders, deliveredOrders }));
+              }
+            });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [business]);
 
   const toggleAgent = async (agent: AgentConfig) => {
