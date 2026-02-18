@@ -1,16 +1,13 @@
-import { Search, Filter, Plus, Phone, Mail, MessageSquare, MoreHorizontal } from "lucide-react";
-import { useState } from "react";
+import { Search, Filter, Plus, Mail, MessageSquare, MoreHorizontal, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useBusiness } from "@/hooks/useBusiness";
+import type { Tables } from "@/integrations/supabase/types";
 
-const contacts = [
-  { id: 1, name: "Sarah Kim", company: "TechFlow Inc.", email: "sarah@techflow.io", phone: "+1 555-0123", channel: "whatsapp", stage: "qualified", value: "$12,500", lastContact: "2h ago" },
-  { id: 2, name: "Ahmed Rashid", company: "GreenLeaf Co.", email: "ahmed@greenleaf.co", phone: "+971 50-123", channel: "whatsapp", stage: "negotiation", value: "$8,200", lastContact: "15m ago" },
-  { id: 3, name: "Maria Lopez", company: "Bright Studios", email: "maria@bright.studio", phone: "+34 612-345", channel: "email", stage: "proposal", value: "$24,000", lastContact: "1d ago" },
-  { id: 4, name: "James Park", company: "DataWorks", email: "james@dataworks.io", phone: "+44 7700-900", channel: "email", stage: "lead", value: "$5,000", lastContact: "3h ago" },
-  { id: 5, name: "Fatima Al-Sayed", company: "Luxe Retail", email: "fatima@luxe.ae", phone: "+971 55-987", channel: "instagram", stage: "qualified", value: "$18,000", lastContact: "30m ago" },
-  { id: 6, name: "Tom Chen", company: "CloudBase", email: "tom@cloudbase.dev", phone: "+86 138-0000", channel: "web", stage: "closed", value: "$32,000", lastContact: "5d ago" },
-];
+type Contact = Tables<"contacts">;
 
 const stageColors: Record<string, string> = {
+  new: "kitz-badge-info",
   lead: "kitz-badge-info",
   qualified: "kitz-badge-live",
   proposal: "kitz-badge-warning",
@@ -25,12 +22,48 @@ const channelIcon: Record<string, React.ReactNode> = {
   web: <MessageSquare className="w-3 h-3" />,
 };
 
+function getPrimaryChannel(contact: Contact): string {
+  if (contact.whatsapp) return "whatsapp";
+  if (contact.email) return "email";
+  if (contact.instagram) return "instagram";
+  return "web";
+}
+
+function formatTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export default function CrmPage() {
+  const { business } = useBusiness();
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!business) return;
+    const load = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("business_id", business.id)
+        .order("updated_at", { ascending: false });
+      if (!error && data) setContacts(data);
+      setLoading(false);
+    };
+    load();
+  }, [business]);
+
   const filtered = contacts.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.company.toLowerCase().includes(search.toLowerCase())
+      (c.email?.toLowerCase().includes(search.toLowerCase()) ?? false)
   );
 
   return (
@@ -64,57 +97,80 @@ export default function CrmPage() {
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-card border border-border rounded-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium">Contact</th>
-                <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Channel</th>
-                <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium">Stage</th>
-                <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Value</th>
-                <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium hidden lg:table-cell">Last Contact</th>
-                <th className="w-10 px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((contact) => (
-                <tr key={contact.id} className="hover:bg-secondary/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="font-medium text-foreground">{contact.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{contact.company}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      {channelIcon[contact.channel]}
-                      <span className="text-xs font-mono capitalize">{contact.channel}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={stageColors[contact.stage]}>
-                      {contact.stage.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className="font-mono text-foreground">{contact.value}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-xs font-mono text-muted-foreground">{contact.lastContact}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button className="text-muted-foreground hover:text-foreground transition-colors">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
-      </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && contacts.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-sm text-muted-foreground">No contacts yet. Create one from Settings or via the API.</p>
+        </div>
+      )}
+
+      {/* Table */}
+      {!loading && contacts.length > 0 && (
+        <div className="bg-card border border-border rounded-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium">Contact</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Channel</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium">Stage</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Revenue</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-mono uppercase tracking-wider text-muted-foreground font-medium hidden lg:table-cell">Updated</th>
+                  <th className="w-10 px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((contact) => {
+                  const channel = getPrimaryChannel(contact);
+                  return (
+                    <tr key={contact.id} className="hover:bg-secondary/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-foreground">{contact.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{contact.email || "—"}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          {channelIcon[channel] || <MessageSquare className="w-3 h-3" />}
+                          <span className="text-xs font-mono capitalize">{channel}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={stageColors[contact.pipeline_stage || "new"] || "kitz-badge-info"}>
+                          {(contact.pipeline_stage || "new").toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <span className="font-mono text-foreground">
+                          ${Number(contact.total_revenue || 0).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {formatTimeAgo(contact.updated_at)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button className="text-muted-foreground hover:text-foreground transition-colors">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
