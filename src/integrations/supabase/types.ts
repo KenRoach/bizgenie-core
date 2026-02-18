@@ -150,6 +150,156 @@ export type Database = {
           },
         ]
       }
+      drip_campaigns: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          name: string
+          status: string
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          name: string
+          status?: string
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drip_campaigns_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drip_enrollments: {
+        Row: {
+          business_id: string
+          campaign_id: string
+          completed_at: string | null
+          contact_id: string
+          current_step: number
+          enrolled_at: string
+          id: string
+          next_step_at: string | null
+          status: string
+        }
+        Insert: {
+          business_id: string
+          campaign_id: string
+          completed_at?: string | null
+          contact_id: string
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          next_step_at?: string | null
+          status?: string
+        }
+        Update: {
+          business_id?: string
+          campaign_id?: string
+          completed_at?: string | null
+          contact_id?: string
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          next_step_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drip_enrollments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drip_enrollments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "drip_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drip_enrollments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drip_steps: {
+        Row: {
+          body: string
+          business_id: string
+          campaign_id: string
+          channel: string
+          created_at: string
+          delay_minutes: number
+          id: string
+          step_order: number
+          subject: string | null
+        }
+        Insert: {
+          body?: string
+          business_id: string
+          campaign_id: string
+          channel?: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          step_order?: number
+          subject?: string | null
+        }
+        Update: {
+          body?: string
+          business_id?: string
+          campaign_id?: string
+          channel?: string
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          step_order?: number
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drip_steps_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drip_steps_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "drip_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_logs: {
         Row: {
           actor_id: string | null
