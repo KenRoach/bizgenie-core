@@ -139,31 +139,51 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2 px-1">
               Agents
             </div>
-            <div className="space-y-1 overflow-y-auto max-h-48 scrollbar-hide" style={{ scrollbarWidth: "thin" }}>
-              {[...agents].sort((a, b) => {
-                const hierarchy: Record<string, number> = {
-                  ceo: 0, cfo: 1, cto: 2, cpo: 3, cro: 4, coo: 5,
-                  ops: 6, growth: 7, sales: 8, marketing: 9, content: 10,
-                  support: 11, analytics: 12, onboarding: 13, retention: 14, custom: 15,
+            <div className="space-y-0.5 overflow-y-auto max-h-48" style={{ scrollbarWidth: "thin" }}>
+              {(() => {
+                const executiveTypes = new Set(["ceo", "cfo", "cto", "cpo", "cro", "coo"]);
+                const leaderMap: Record<string, string> = {
+                  growth: "cro", sales: "cro", marketing: "cro",
+                  content: "cpo", retention: "cpo", onboarding: "cpo",
+                  ops: "coo", analytics: "coo",
+                  support: "cto",
+                  custom: "ceo",
                 };
-                return (hierarchy[a.agent_type] ?? 99) - (hierarchy[b.agent_type] ?? 99);
-              }).map((agent) => (
-                <button
-                  key={agent.name}
-                  onClick={() => agent.is_active && setChatAgent(agent)}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs w-full text-left transition-colors ${agent.is_active ? "hover:bg-secondary cursor-pointer" : "opacity-50 cursor-default"}`}
-                >
-                  <Bot className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-sidebar-foreground truncate flex-1">{agent.name}</span>
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      agent.is_active
-                        ? "bg-success animate-pulse-glow"
-                        : "bg-muted-foreground"
-                    }`}
-                  />
-                </button>
-              ))}
+                const hierarchy: Record<string, number> = {
+                  ceo: 0, cfo: 1, coo: 2, cto: 3, cpo: 4, cro: 5,
+                };
+                const executives = [...agents]
+                  .filter(a => executiveTypes.has(a.agent_type))
+                  .sort((a, b) => (hierarchy[a.agent_type] ?? 99) - (hierarchy[b.agent_type] ?? 99));
+                const functional = agents.filter(a => !executiveTypes.has(a.agent_type));
+
+                return executives.map(exec => {
+                  const subs = functional.filter(a => leaderMap[a.agent_type] === exec.agent_type);
+                  return (
+                    <div key={exec.id}>
+                      <button
+                        onClick={() => exec.is_active && setChatAgent(exec)}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs w-full text-left transition-colors ${exec.is_active ? "hover:bg-secondary cursor-pointer" : "opacity-50 cursor-default"}`}
+                      >
+                        <Bot className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-sidebar-foreground truncate flex-1 font-medium">{exec.name}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${exec.is_active ? "bg-success animate-pulse-glow" : "bg-muted-foreground"}`} />
+                      </button>
+                      {subs.map(sub => (
+                        <button
+                          key={sub.id}
+                          onClick={() => sub.is_active && setChatAgent(sub)}
+                          className={`flex items-center gap-2 pl-7 pr-2 py-1 rounded-sm text-[11px] w-full text-left transition-colors ${sub.is_active ? "hover:bg-secondary cursor-pointer" : "opacity-50 cursor-default"}`}
+                        >
+                          <span className="w-3 border-l border-b border-border h-3 -mt-2 shrink-0" />
+                          <span className="text-muted-foreground truncate flex-1">{sub.name}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${sub.is_active ? "bg-success animate-pulse-glow" : "bg-muted-foreground"}`} />
+                        </button>
+                      ))}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         )}
