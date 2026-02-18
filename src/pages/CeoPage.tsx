@@ -9,16 +9,25 @@ import {
   Brain, Sparkles, ChevronDown, ChevronRight, Zap
 } from "lucide-react";
 
-type Msg = { role: "user" | "assistant"; content: string; streamId?: string };
+type ToolAction = { tool: string; args: Record<string, unknown>; result: string; success: boolean };
+type Msg = { role: "user" | "assistant" | "actions"; content: string; streamId?: string; actions?: ToolAction[] };
 
 const MAX_CONCURRENT = 3;
 
 const THINKING_PHASES = [
   "Analyzing business context...",
-  "Reviewing goals & knowledge base...",
-  "Processing strategy...",
-  "Formulating response...",
+  "Executing actions...",
+  "Spawning agents & creating goals...",
+  "Building strategy...",
 ];
+
+const TOOL_ICONS: Record<string, string> = {
+  create_goal: "🎯",
+  spawn_agent: "🤖",
+  add_knowledge: "📚",
+  update_goal_progress: "📊",
+  log_feedback: "💬",
+};
 
 interface Goal {
   id: string;
@@ -162,6 +171,19 @@ export default function CeoPage() {
           if (jsonStr === "[DONE]") break;
           try {
             const parsed = JSON.parse(jsonStr);
+
+            // Handle tool actions event
+            if (parsed.type === "tool_actions" && parsed.actions) {
+              setMessages(prev => [
+                ...prev,
+                { role: "actions" as const, content: "", streamId, actions: parsed.actions as ToolAction[] },
+              ]);
+              // Refresh goals & knowledge after tool actions
+              loadGoals();
+              loadKnowledge();
+              continue;
+            }
+
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
               assistantSoFar += content;
@@ -286,6 +308,31 @@ export default function CeoPage() {
               </div>
             )}
             {messages.map((msg, i) => {
+              // Render tool action cards
+              if (msg.role === "actions" && msg.actions) {
+                return (
+                  <div key={i} className="flex justify-start">
+                    <div className="max-w-[85%] space-y-1.5">
+                      <div className="flex items-center gap-1.5 px-1">
+                        <Zap className="w-3 h-3 text-primary" />
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">CEO Actions Executed</span>
+                      </div>
+                      {msg.actions.map((action, j) => (
+                        <div key={j} className={`flex items-start gap-2 px-3 py-2 rounded-md border text-xs ${action.success ? "bg-success/10 border-success/30 text-success" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
+                          <span className="text-base leading-none mt-0.5">{TOOL_ICONS[action.tool] || "⚡"}</span>
+                          <div className="min-w-0">
+                            <span className="font-medium">{action.result}</span>
+                            {action.args.title && (
+                              <p className="text-muted-foreground mt-0.5 truncate">{String(action.args.description || action.args.content || "").slice(0, 100)}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+
               const isStreaming = msg.role === "assistant" && msg.streamId && activeStreams.has(msg.streamId);
               const isThinking = isStreaming && !msg.content;
               return (
