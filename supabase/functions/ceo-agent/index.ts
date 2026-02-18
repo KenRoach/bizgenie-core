@@ -234,20 +234,38 @@ async function executeTool(
         // Check if agent with same type already exists
         const { data: existing } = await supabase
           .from("agent_configurations")
-          .select("id, name")
+          .select("id, name, nhi_identifier")
           .eq("business_id", businessId)
           .eq("agent_type", args.agent_type)
           .maybeSingle();
 
+        // Also check if NHI is taken by a different agent
+        if (args.nhi_identifier) {
+          const { data: nhiConflict } = await supabase
+            .from("agent_configurations")
+            .select("id")
+            .eq("business_id", businessId)
+            .eq("nhi_identifier", args.nhi_identifier as string)
+            .maybeSingle();
+          if (nhiConflict && (!existing || nhiConflict.id !== existing.id)) {
+            // NHI taken by another agent, append a suffix
+            args.nhi_identifier = `${args.nhi_identifier}-${Date.now().toString(36).slice(-4)}`;
+          }
+        }
+
         if (existing) {
           // Update existing agent instead
-          const { error } = await supabase.from("agent_configurations").update({
+          const updatePayload: Record<string, unknown> = {
             name: args.name as string,
             system_prompt: args.system_prompt as string,
-            nhi_identifier: args.nhi_identifier as string,
             model: (args.model as string) || "google/gemini-3-flash-preview",
             is_active: true,
-          }).eq("id", existing.id);
+          };
+          // Only update NHI if it changed
+          if (args.nhi_identifier && args.nhi_identifier !== existing.nhi_identifier) {
+            updatePayload.nhi_identifier = args.nhi_identifier as string;
+          }
+          const { error } = await supabase.from("agent_configurations").update(updatePayload).eq("id", existing.id);
           if (error) return { success: false, result: `Failed to update agent: ${error.message}` };
           return { success: true, result: `✅ Agent updated: "${args.name}" (${args.agent_type}) — NHI: ${args.nhi_identifier}`, data: { ...existing, updated: true } };
         }
