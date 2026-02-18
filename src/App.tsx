@@ -13,6 +13,9 @@ import InsightsPage from "./pages/InsightsPage";
 import InboxPage from "./pages/InboxPage";
 import SettingsPage from "./pages/SettingsPage";
 import CampaignsPage from "./pages/CampaignsPage";
+import ToolRegistryPage from "./pages/ToolRegistryPage";
+import AuditLogPage from "./pages/AuditLogPage";
+import SecurityPage from "./pages/SecurityPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -50,6 +53,9 @@ const AppRoutes = () => (
     <Route path="/inbox" element={<ProtectedRoute><AppLayout><InboxPage /></AppLayout></ProtectedRoute>} />
     <Route path="/campaigns" element={<ProtectedRoute><AppLayout><CampaignsPage /></AppLayout></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsPage /></AppLayout></ProtectedRoute>} />
+    <Route path="/tools" element={<ProtectedRoute><AppLayout><ToolRegistryPage /></AppLayout></ProtectedRoute>} />
+    <Route path="/audit" element={<ProtectedRoute><AppLayout><AuditLogPage /></AppLayout></ProtectedRoute>} />
+    <Route path="/security" element={<ProtectedRoute><AppLayout><SecurityPage /></AppLayout></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
