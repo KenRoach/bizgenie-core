@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,10 +6,19 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Crown, Send, Loader2, Target, BookOpen, Plus, Trash2,
   TrendingUp, Calendar, CheckCircle2, Circle, ArrowRight,
-  Brain, Sparkles, ChevronDown, ChevronRight
+  Brain, Sparkles, ChevronDown, ChevronRight, Zap
 } from "lucide-react";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; streamId?: string };
+
+const MAX_CONCURRENT = 3;
+
+const THINKING_PHASES = [
+  "Analyzing business context...",
+  "Reviewing goals & knowledge base...",
+  "Processing strategy...",
+  "Formulating response...",
+];
 
 interface Goal {
   id: string;
@@ -50,8 +59,13 @@ export default function CeoPage() {
   // Chat state
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
-  const [streaming, setStreaming] = useState(false);
+  const [activeStreams, setActiveStreams] = useState<Set<string>>(new Set());
+  const [thinkingPhases, setThinkingPhases] = useState<Record<string, number>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const streamCounter = useRef(0);
+
+  const streaming = activeStreams.size > 0;
+  const canSend = activeStreams.size < MAX_CONCURRENT;
 
   // Goals state
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -79,16 +93,34 @@ export default function CeoPage() {
     setKnowledge((data as Knowledge[]) || []);
   };
 
-  // Streaming chat
-  const sendMessage = async () => {
-    if (!input.trim() || !business || streaming) return;
-    const userMsg: Msg = { role: "user", content: input.trim() };
+  // Thinking phase animation
+  useEffect(() => {
+    if (activeStreams.size === 0) return;
+    const interval = setInterval(() => {
+      setThinkingPhases(prev => {
+        const next = { ...prev };
+        for (const id of activeStreams) {
+          next[id] = ((prev[id] || 0) + 1) % THINKING_PHASES.length;
+        }
+        return next;
+      });
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [activeStreams]);
+
+  // Streaming chat — supports up to MAX_CONCURRENT simultaneous requests
+  const sendMessage = useCallback(async () => {
+    if (!input.trim() || !business || !canSend) return;
+    const streamId = `stream-${++streamCounter.current}`;
+    const userMsg: Msg = { role: "user", content: input.trim(), streamId };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
-    setStreaming(true);
+    setActiveStreams(prev => new Set(prev).add(streamId));
+    setThinkingPhases(prev => ({ ...prev, [streamId]: 0 }));
 
     let assistantSoFar = "";
-    const allMessages = [...messages, userMsg];
+    // Send full conversation history (minus streamIds) for context
+    const allMessages = [...messages, userMsg].map(({ role, content }) => ({ role, content }));
 
     try {
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ceo-agent`, {
@@ -103,9 +135,12 @@ export default function CeoPage() {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Request failed" }));
         toast({ title: "CEO Agent Error", description: err.error, variant: "destructive" });
-        setStreaming(false);
+        setActiveStreams(prev => { const n = new Set(prev); n.delete(streamId); return n; });
         return;
       }
+
+      // Add placeholder assistant message
+      setMessages(prev => [...prev, { role: "assistant", content: "", streamId }]);
 
       const reader = resp.body!.getReader();
       const decoder = new TextDecoder();
@@ -130,13 +165,10 @@ export default function CeoPage() {
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
               assistantSoFar += content;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
-                }
-                return [...prev, { role: "assistant", content: assistantSoFar }];
-              });
+              const captured = assistantSoFar;
+              setMessages(prev =>
+                prev.map(m => m.streamId === streamId && m.role === "assistant" ? { ...m, content: captured } : m)
+              );
             }
           } catch {
             textBuffer = line + "\n" + textBuffer;
@@ -148,8 +180,9 @@ export default function CeoPage() {
       console.error(e);
       toast({ title: "Error", description: "Failed to reach CEO Agent", variant: "destructive" });
     }
-    setStreaming(false);
-  };
+    setActiveStreams(prev => { const n = new Set(prev); n.delete(streamId); return n; });
+    setThinkingPhases(prev => { const n = { ...prev }; delete n[streamId]; return n; });
+  }, [input, business, canSend, messages, session, toast]);
 
   // Goal CRUD
   const handleAddGoal = async () => {
@@ -252,26 +285,50 @@ export default function CeoPage() {
                 </div>
               </div>
             )}
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] px-4 py-3 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}>
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
+            {messages.map((msg, i) => {
+              const isStreaming = msg.role === "assistant" && msg.streamId && activeStreams.has(msg.streamId);
+              const isThinking = isStreaming && !msg.content;
+              return (
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] px-4 py-3 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}>
+                    {isThinking ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+                        <span className="text-xs text-muted-foreground animate-pulse">
+                          {THINKING_PHASES[thinkingPhases[msg.streamId!] || 0]}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap">
+                        {msg.content}
+                        {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary ml-0.5 animate-pulse rounded-sm" />}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {streaming && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex justify-start">
-                <div className="bg-card border border-border rounded-lg px-4 py-3">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                </div>
-              </div>
-            )}
+              );
+            })}
             <div ref={chatEndRef} />
           </div>
           <div className="p-4 border-t border-border shrink-0">
+            {activeStreams.size > 0 && (
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {activeStreams.size}/{MAX_CONCURRENT} actions running
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  {Array.from({ length: MAX_CONCURRENT }).map((_, i) => (
+                    <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < activeStreams.size ? "bg-primary animate-pulse" : "bg-border"}`} />
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex gap-2">
-              <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder="Talk to your CEO..." className="flex-1 px-4 py-2.5 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring" disabled={streaming} />
-              <button onClick={sendMessage} disabled={streaming || !input.trim()} className="px-4 py-2.5 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity disabled:opacity-50">
+              <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder={canSend ? "Talk to your CEO..." : "Max 3 actions running. Wait for one to finish..."} className="flex-1 px-4 py-2.5 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50" disabled={!canSend} />
+              <button onClick={sendMessage} disabled={!canSend || !input.trim()} className="px-4 py-2.5 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity disabled:opacity-50">
                 {streaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </div>
