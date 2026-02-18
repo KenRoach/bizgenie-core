@@ -92,7 +92,7 @@ export default function ManagerThinking({ userMessage = "", elapsed = 0 }: Manag
             <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
             <Brain className="w-4 h-4 text-primary relative z-10" />
           </div>
-          <span className="text-xs font-medium text-foreground">Manager is working</span>
+          <span className="text-xs font-medium text-foreground">Builder is working</span>
           <span className="text-[10px] font-mono text-muted-foreground ml-auto tabular-nums">
             {elapsed > 0 ? `${elapsed}s` : ""}
           </span>
