@@ -1,0 +1,3 @@
+ALTER TABLE public.agent_configurations DROP CONSTRAINT agent_configurations_agent_type_check;
+
+ALTER TABLE public.agent_configurations ADD CONSTRAINT agent_configurations_agent_type_check CHECK (agent_type = ANY (ARRAY['ceo'::text, 'sales'::text, 'ops'::text, 'cfo'::text, 'cto'::text, 'cpo'::text, 'cro'::text, 'coo'::text, 'marketing'::text, 'support'::text, 'onboarding'::text, 'analytics'::text, 'growth'::text, 'content'::text, 'retention'::text, 'custom'::text, 'crm'::text, 'followup'::text]));
