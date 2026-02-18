@@ -10,9 +10,9 @@ const corsHeaders = {
 const INJECTION_PATTERNS = [
   /ignore\s+(all\s+)?previous\s+instructions/i,
   /disregard\s+(all\s+)?prior/i,
-  /you\s+are\s+now\s+a/i,
-  /pretend\s+you\s+are/i,
-  /system\s*:\s*/i,
+  /you\s+are\s+now\s+a\s+(different|new|evil|malicious|hacker)/i,
+  /pretend\s+(to\s+be|you\s+are)\s+(a\s+)?(different|evil|malicious)/i,
+  /\bsystem\s*:\s*you\s+are/i,
   /\[INST\]/i,
   /\<\|im_start\|\>/i,
   /jailbreak/i,
