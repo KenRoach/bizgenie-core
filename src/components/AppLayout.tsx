@@ -17,6 +17,7 @@ import {
   ScrollText,
   ShieldAlert,
   Crown,
+  MessageSquareWarning,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -31,6 +32,7 @@ const navItems = [
   { path: "/tools", label: "Tool Registry", icon: Wrench },
   { path: "/audit", label: "Audit Log", icon: ScrollText },
   { path: "/security", label: "Security", icon: ShieldAlert },
+  { path: "/feedback", label: "Feedback Loop", icon: MessageSquareWarning },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 

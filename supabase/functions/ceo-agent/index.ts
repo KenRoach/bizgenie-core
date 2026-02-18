@@ -49,6 +49,7 @@ serve(async (req) => {
       ordersCountRes,
       agentsRes,
       campaignsRes,
+      feedbackRes,
     ] = await Promise.all([
       supabase.from("businesses").select("name, settings").eq("id", business_id).single(),
       supabase.from("agent_knowledge").select("category, title, content").eq("business_id", business_id).order("updated_at", { ascending: false }).limit(50),
@@ -57,6 +58,7 @@ serve(async (req) => {
       supabase.from("orders").select("*", { count: "exact", head: true }).eq("business_id", business_id),
       supabase.from("agent_configurations").select("name, agent_type, is_active, nhi_identifier").eq("business_id", business_id),
       supabase.from("drip_campaigns").select("name, status, trigger_type").eq("business_id", business_id),
+      supabase.from("feedback").select("category, sentiment, priority, title, status, source, created_at").eq("business_id", business_id).order("created_at", { ascending: false }).limit(30),
     ]);
 
     const businessName = businessRes.data?.name || "Kitz";
@@ -66,6 +68,38 @@ serve(async (req) => {
     const orderCount = ordersCountRes.count || 0;
     const agents = agentsRes.data || [];
     const campaigns = campaignsRes.data || [];
+    const recentFeedback = feedbackRes.data || [];
+
+    // Build feedback context
+    const newComplaints = recentFeedback.filter(f => f.sentiment === "negative" && f.status === "new");
+    const praises = recentFeedback.filter(f => f.sentiment === "positive");
+    const criticalFeedback = recentFeedback.filter(f => f.priority === "critical" && f.status !== "resolved");
+    const feedbackByCat = recentFeedback.reduce((acc, f) => {
+      if (f.sentiment === "negative") acc[f.category] = (acc[f.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    const topFrictionAreas = Object.entries(feedbackByCat).sort(([,a],[,b]) => b - a).slice(0, 5);
+
+    const feedbackContext = `
+## USER & MARKET FEEDBACK (Last 30 entries)
+- New complaints: ${newComplaints.length}
+- Praises: ${praises.length}
+- Critical unresolved: ${criticalFeedback.length}
+- Top friction areas: ${topFrictionAreas.map(([c,n]) => `${c}(${n})`).join(", ") || "None yet"}
+
+Recent complaints:
+${newComplaints.slice(0, 5).map(f => `• [${f.category}] ${f.title} (${f.source})`).join("\n") || "None"}
+
+Recent praises:
+${praises.slice(0, 5).map(f => `• ${f.title} (${f.source})`).join("\n") || "None"}
+
+FEEDBACK RULES:
+- Revenue blocker → prioritize within 7 days
+- Retention issue → fix before adding new features
+- Confusion in onboarding → simplify immediately
+- Security concern → escalate instantly
+- Data > ego. Never defend the product emotionally.
+`;
 
     // Build knowledge context
     const knowledgeByCategory: Record<string, string[]> = {};
@@ -107,6 +141,8 @@ ${weeklyGoals.length > 0 ? weeklyGoals.map(g => `• ${g.title} (${g.progress}%)
 
 ## KNOWLEDGE BASE
 ${knowledgeContext || "Empty — you should help build this. Ask about the product, market, pricing, customers."}
+
+${feedbackContext}
 
 ## STRATEGIC FRAMEWORK
 ${goalsContext}

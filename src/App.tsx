@@ -17,6 +17,7 @@ import ToolRegistryPage from "./pages/ToolRegistryPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import SecurityPage from "./pages/SecurityPage";
 import CeoPage from "./pages/CeoPage";
+import FeedbackPage from "./pages/FeedbackPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -58,6 +59,7 @@ const AppRoutes = () => (
     <Route path="/tools" element={<ProtectedRoute><AppLayout><ToolRegistryPage /></AppLayout></ProtectedRoute>} />
     <Route path="/audit" element={<ProtectedRoute><AppLayout><AuditLogPage /></AppLayout></ProtectedRoute>} />
     <Route path="/security" element={<ProtectedRoute><AppLayout><SecurityPage /></AppLayout></ProtectedRoute>} />
+    <Route path="/feedback" element={<ProtectedRoute><AppLayout><FeedbackPage /></AppLayout></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
