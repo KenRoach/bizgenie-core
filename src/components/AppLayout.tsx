@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useBusiness } from "@/hooks/useBusiness";
 import {
   LayoutDashboard,
   Users,
@@ -36,17 +38,36 @@ const navItems = [
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
-const agents = [
-  { name: "CRM Agent", status: "active" as const },
-  { name: "Follow Up Agent", status: "active" as const },
-  { name: "Support Agent", status: "idle" as const },
-];
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { signOut } = useAuth();
+  const { business } = useBusiness();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [agents, setAgents] = useState<{ name: string; is_active: boolean }[]>([]);
+
+  useEffect(() => {
+    if (!business?.id) return;
+    const fetchAgents = async () => {
+      const { data } = await supabase
+        .from("agent_configurations")
+        .select("name, is_active")
+        .eq("business_id", business.id)
+        .order("created_at");
+      if (data) setAgents(data);
+    };
+    fetchAgents();
+
+    // Realtime subscription for live updates
+    const channel = supabase
+      .channel("sidebar-agents")
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_configurations", filter: `business_id=eq.${business.id}` }, () => {
+        fetchAgents();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [business?.id]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -126,7 +147,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <span className="text-sidebar-foreground truncate flex-1">{agent.name}</span>
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      agent.status === "active"
+                      agent.is_active
                         ? "bg-success animate-pulse-glow"
                         : "bg-muted-foreground"
                     }`}
