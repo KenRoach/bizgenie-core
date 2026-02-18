@@ -3,7 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Github, Bot, Cpu, Save, Loader2, Plus, Trash2, Power, Key, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Settings, Github, Bot, Cpu, Save, Loader2, Plus, Trash2, Power, Key, Eye, EyeOff, Copy, Check, Sparkles } from "lucide-react";
+
+const LLM_MODELS = [
+  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash", tier: "Fast" },
+  { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", tier: "Premium" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", tier: "Premium" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", tier: "Balanced" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", tier: "Economy" },
+  { value: "openai/gpt-5", label: "GPT-5", tier: "Premium" },
+  { value: "openai/gpt-5-mini", label: "GPT-5 Mini", tier: "Balanced" },
+  { value: "openai/gpt-5-nano", label: "GPT-5 Nano", tier: "Economy" },
+  { value: "openai/gpt-5.2", label: "GPT-5.2", tier: "Premium" },
+];
 
 interface AgentConfig {
   id: string;
@@ -123,6 +135,16 @@ export default function SettingsPage() {
   const handleDeleteAgent = async (id: string) => {
     await supabase.from("agent_configurations").delete().eq("id", id);
     loadAll();
+  };
+
+  const handleUpdateAgent = async (id: string, updates: Partial<AgentConfig>) => {
+    const { error } = await supabase.from("agent_configurations").update(updates).eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Agent updated" });
+      loadAll();
+    }
   };
 
   const handleAddGithub = async () => {
@@ -302,6 +324,9 @@ export default function SettingsPage() {
                   <Bot className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">{agent.name}</span>
                   <span className="kitz-badge-info">{agent.agent_type.toUpperCase()}</span>
+                  <span className={`text-[10px] font-mono ${agent.is_active ? "text-success" : "text-muted-foreground"}`}>
+                    {agent.is_active ? "● Active" : "○ Inactive"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => handleToggleAgent(agent.id, agent.is_active)} className={`p-1.5 rounded-md transition-colors ${agent.is_active ? "text-success hover:bg-success/10" : "text-muted-foreground hover:bg-secondary"}`}>
@@ -312,12 +337,42 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
-              <div className="text-[11px] font-mono text-muted-foreground">
-                Model: {agent.model} · {agent.is_active ? "Active" : "Inactive"}
+
+              {/* Model selector */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> LLM Model
+                </label>
+                <select
+                  value={agent.model}
+                  onChange={(e) => handleUpdateAgent(agent.id, { model: e.target.value })}
+                  className="w-full max-w-md px-3 py-2 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  {LLM_MODELS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label} — {m.tier}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] font-mono text-muted-foreground">
+                  {LLM_MODELS.find((m) => m.value === agent.model)?.tier || "Custom"} tier · {agent.model}
+                </p>
               </div>
-              {agent.system_prompt && (
-                <p className="text-xs text-muted-foreground bg-secondary/50 rounded-md p-2 font-mono line-clamp-2">{agent.system_prompt}</p>
-              )}
+
+              {/* System prompt */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">System Prompt</label>
+                <textarea
+                  value={agent.system_prompt || ""}
+                  onChange={(e) => {
+                    setAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, system_prompt: e.target.value } : a));
+                  }}
+                  onBlur={(e) => handleUpdateAgent(agent.id, { system_prompt: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-md text-xs text-foreground font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                  placeholder="Define this agent's behavior and personality..."
+                />
+              </div>
             </div>
           ))}
           {agents.length === 0 && missingAgents.length === 0 && (
