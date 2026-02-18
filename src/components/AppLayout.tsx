@@ -135,12 +135,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Agent Status */}
         {!collapsed && (
-          <div className="px-3 pb-4">
+          <div className="px-3 pb-4 min-h-0 flex flex-col">
             <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2 px-1">
               Agents
             </div>
-            <div className="space-y-1">
-              {agents.map((agent) => (
+            <div className="space-y-1 overflow-y-auto max-h-48 scrollbar-hide" style={{ scrollbarWidth: "thin" }}>
+              {[...agents].sort((a, b) => {
+                const hierarchy: Record<string, number> = {
+                  ceo: 0, cfo: 1, cto: 2, cpo: 3, cro: 4, coo: 5,
+                  ops: 6, growth: 7, sales: 8, marketing: 9, content: 10,
+                  support: 11, analytics: 12, onboarding: 13, retention: 14, custom: 15,
+                };
+                return (hierarchy[a.agent_type] ?? 99) - (hierarchy[b.agent_type] ?? 99);
+              }).map((agent) => (
                 <button
                   key={agent.name}
                   onClick={() => agent.is_active && setChatAgent(agent)}
