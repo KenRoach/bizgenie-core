@@ -581,6 +581,68 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          business_id: string
+          category: string
+          content: string
+          created_at: string
+          fix_deadline: string | null
+          fix_type: string | null
+          id: string
+          priority: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          sentiment: string
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          category?: string
+          content?: string
+          created_at?: string
+          fix_deadline?: string | null
+          fix_type?: string | null
+          id?: string
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          sentiment?: string
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          category?: string
+          content?: string
+          created_at?: string
+          fix_deadline?: string | null
+          fix_type?: string | null
+          id?: string
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          sentiment?: string
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       github_integrations: {
         Row: {
           access_token_secret_ref: string | null
