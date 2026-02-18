@@ -25,7 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/ceo", label: "Virtual CEO", icon: Crown },
+  { path: "/ceo", label: "Manager", icon: Crown },
   { path: "/crm", label: "CRM", icon: Users },
   { path: "/orders", label: "Orders", icon: ShoppingCart },
   { path: "/campaigns", label: "Campaigns", icon: Mail },
