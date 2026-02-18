@@ -264,7 +264,7 @@ export default function CeoPage() {
         <div className="flex items-center justify-between max-w-6xl mx-auto">
           <div className="flex items-center gap-2">
             <Crown className="w-5 h-5 text-primary" />
-            <h1 className="text-lg font-semibold text-foreground">Manager</h1>
+            <h1 className="text-lg font-semibold text-foreground">Builder</h1>
             <span className="kitz-badge-live text-[10px]">
               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-glow" /> ONLINE
             </span>
@@ -291,9 +291,9 @@ export default function CeoPage() {
               <div className="text-center py-12 space-y-4">
                 <Crown className="w-12 h-12 text-primary mx-auto opacity-50" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">Your Manager is ready</p>
+                  <p className="text-sm font-medium text-foreground">Your Builder is ready</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                    Start by saying "Let's build the AOP" or "What should we focus on this quarter?" The Manager has full context of your business, contacts, orders, campaigns, and knowledge base.
+                    Start by saying "Let's build the AOP" or "What should we focus on this quarter?" The Builder has full context of your business, contacts, orders, campaigns, and knowledge base.
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
