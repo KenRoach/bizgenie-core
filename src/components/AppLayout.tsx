@@ -22,6 +22,7 @@ import {
   MessageSquareWarning,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import AgentChatPanel from "@/components/AgentChatPanel";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -44,14 +45,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { business } = useBusiness();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [agents, setAgents] = useState<{ name: string; is_active: boolean }[]>([]);
-
+  const [agents, setAgents] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null; is_active: boolean }[]>([]);
+  const [chatAgent, setChatAgent] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null } | null>(null);
   useEffect(() => {
     if (!business?.id) return;
     const fetchAgents = async () => {
       const { data } = await supabase
         .from("agent_configurations")
-        .select("name, is_active")
+        .select("id, name, agent_type, nhi_identifier, is_active")
         .eq("business_id", business.id)
         .order("created_at");
       if (data) setAgents(data);
@@ -139,9 +140,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="space-y-1">
               {agents.map((agent) => (
-                <div
+                <button
                   key={agent.name}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs"
+                  onClick={() => agent.is_active && setChatAgent(agent)}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs w-full text-left transition-colors ${agent.is_active ? "hover:bg-secondary cursor-pointer" : "opacity-50 cursor-default"}`}
                 >
                   <Bot className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-sidebar-foreground truncate flex-1">{agent.name}</span>
@@ -152,7 +154,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         : "bg-muted-foreground"
                     }`}
                   />
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -194,8 +196,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto kitz-grid-bg">
-          {children}
+        <div className="flex-1 overflow-auto kitz-grid-bg relative">
+          {chatAgent ? (
+            <AgentChatPanel agent={chatAgent} onClose={() => setChatAgent(null)} />
+          ) : (
+            children
+          )}
         </div>
       </main>
     </div>
