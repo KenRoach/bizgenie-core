@@ -441,7 +441,7 @@ export default function DashboardPage() {
               </button>
             </div>
           ) : (
-            <div className="p-3 space-y-2">
+            <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto">
               {agents.map((agent) => (
                 <div
                   key={agent.id}
