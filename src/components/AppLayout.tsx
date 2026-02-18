@@ -141,15 +141,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               Agents
             </div>
             <div className="space-y-0.5 overflow-y-auto max-h-48" style={{ scrollbarWidth: "thin" }}>
-              {/* CEO — fixed top entry */}
-              <button
-                onClick={() => navigate("/ceo")}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs w-full text-left transition-colors hover:bg-secondary cursor-pointer ${location.pathname === "/ceo" ? "bg-secondary" : ""}`}
-              >
-                <Crown className="w-3.5 h-3.5 text-primary" />
-                <span className="text-sidebar-foreground truncate flex-1 font-medium">CEO Agent</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-glow" />
-              </button>
               {(() => {
                 const executiveTypes = new Set(["ceo", "cfo", "cto", "cpo", "cro", "coo"]);
                 const leaderMap: Record<string, string> = {
