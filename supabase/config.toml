@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.ceo-agent]
 verify_jwt = false
+
+[functions.web-scrape]
+verify_jwt = false
+
+[functions.agent-chat]
+verify_jwt = false

@@ -18,6 +18,10 @@ const TOOL_ICONS: Record<string, string> = {
   log_feedback: "💬",
   update_goal_progress: "📊",
   update_contact: "👤",
+  create_contact: "➕",
+  create_order: "🛒",
+  web_scrape: "🌐",
+  delegate_to_agent: "📨",
 };
 
 interface AgentChatPanelProps {

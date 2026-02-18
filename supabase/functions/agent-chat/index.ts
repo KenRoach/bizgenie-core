@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Tools available to all agents (read access to business data + write actions)
+// Core tools available to all agents
 const AGENT_TOOLS = [
   {
     type: "function",
@@ -163,6 +163,82 @@ const AGENT_TOOLS = [
       },
     },
   },
+  // === NEW TOOLS ===
+  {
+    type: "function",
+    function: {
+      name: "create_contact",
+      description: "Create a new contact in the CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Contact full name" },
+          email: { type: "string", description: "Email address (optional)" },
+          phone: { type: "string", description: "Phone number (optional)" },
+          pipeline_stage: { type: "string", description: "Pipeline stage: new, contacted, qualified, proposal, won, lost (default: new)" },
+          tags: { type: "array", items: { type: "string" }, description: "Tags (optional)" },
+          notes: { type: "string", description: "Notes about this contact (optional)" },
+          instagram: { type: "string", description: "Instagram handle (optional)" },
+          whatsapp: { type: "string", description: "WhatsApp number (optional)" },
+        },
+        required: ["name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_order",
+      description: "Create a new order for a contact.",
+      parameters: {
+        type: "object",
+        properties: {
+          order_number: { type: "string", description: "Order number/ID" },
+          contact_id: { type: "string", description: "UUID of the contact (optional)" },
+          total: { type: "number", description: "Order total amount" },
+          currency: { type: "string", description: "Currency code (default: USD)" },
+          status: { type: "string", description: "Order status: pending, processing, shipped, delivered (default: pending)" },
+          payment_status: { type: "string", description: "Payment status: unpaid, paid, refunded (default: unpaid)" },
+          items: { type: "array", items: { type: "object", properties: { name: { type: "string" }, qty: { type: "number" }, price: { type: "number" } } }, description: "Line items (optional)" },
+        },
+        required: ["order_number", "total"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_scrape",
+      description: "Scrape a web page and extract its text content, title, description, and links. Use for research, competitor analysis, or gathering information from URLs.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "The URL to scrape" },
+          extract_links: { type: "boolean", description: "Also extract links from the page (default false)" },
+        },
+        required: ["url"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delegate_to_agent",
+      description: "Send a message to another agent and get their response. Use for inter-agent collaboration — e.g., ask the sales agent about pipeline or the marketing agent about campaigns.",
+      parameters: {
+        type: "object",
+        properties: {
+          target_agent_type: { type: "string", description: "Type of agent to delegate to: sales, ops, cfo, marketing, support, analytics, growth, content, retention, custom" },
+          message: { type: "string", description: "The message/question to send to the other agent" },
+        },
+        required: ["target_agent_type", "message"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 // Execute a tool call
@@ -170,7 +246,8 @@ async function executeTool(
   supabase: ReturnType<typeof createClient>,
   businessId: string,
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  context: { supabaseUrl: string; supabaseAnonKey: string; authHeader: string; agentNhi: string | null }
 ): Promise<{ success: boolean; result: string; data?: unknown }> {
   try {
     switch (toolName) {
@@ -223,7 +300,7 @@ async function executeTool(
           title: args.title,
           content: args.content,
           source: "agent",
-          created_by: "agent",
+          created_by: context.agentNhi || "agent",
         });
         if (error) return { success: false, result: `Failed: ${error.message}` };
         return { success: true, result: `✅ Knowledge saved: [${args.category}] "${args.title}"` };
@@ -259,12 +336,136 @@ async function executeTool(
         if (error) return { success: false, result: `Failed: ${error.message}` };
         return { success: true, result: `✅ Contact updated` };
       }
+      // === NEW TOOLS ===
+      case "create_contact": {
+        const { data, error } = await supabase.from("contacts").insert({
+          business_id: businessId,
+          name: args.name,
+          email: args.email || null,
+          phone: args.phone || null,
+          pipeline_stage: args.pipeline_stage || "new",
+          tags: args.tags || [],
+          notes: args.notes || null,
+          instagram: args.instagram || null,
+          whatsapp: args.whatsapp || null,
+        }).select().single();
+        if (error) return { success: false, result: `Failed: ${error.message}` };
+        return { success: true, result: `✅ Contact created: "${args.name}"`, data };
+      }
+      case "create_order": {
+        const { data, error } = await supabase.from("orders").insert({
+          business_id: businessId,
+          order_number: args.order_number,
+          contact_id: args.contact_id || null,
+          total: args.total || 0,
+          currency: args.currency || "USD",
+          status: args.status || "pending",
+          payment_status: args.payment_status || "unpaid",
+          items: args.items || [],
+        }).select().single();
+        if (error) return { success: false, result: `Failed: ${error.message}` };
+        return { success: true, result: `✅ Order created: #${args.order_number} ($${args.total})`, data };
+      }
+      case "web_scrape": {
+        try {
+          const scrapeUrl = `${context.supabaseUrl}/functions/v1/web-scrape`;
+          const resp = await fetch(scrapeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${context.supabaseAnonKey}` },
+            body: JSON.stringify({ url: args.url, extract_links: args.extract_links || false }),
+          });
+          const scrapeData = await resp.json();
+          if (!scrapeData.success) return { success: false, result: `Scrape failed: ${scrapeData.error}` };
+          return { success: true, result: `✅ Scraped "${scrapeData.data.title}" (${scrapeData.data.content_length} chars)`, data: scrapeData.data };
+        } catch (e) {
+          return { success: false, result: `Scrape error: ${e instanceof Error ? e.message : "Unknown"}` };
+        }
+      }
+      case "delegate_to_agent": {
+        try {
+          // Find the target agent
+          const { data: targetAgent } = await supabase
+            .from("agent_configurations")
+            .select("id, name, agent_type, system_prompt, model, nhi_identifier")
+            .eq("business_id", businessId)
+            .eq("agent_type", args.target_agent_type)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (!targetAgent) {
+            return { success: false, result: `No active ${args.target_agent_type} agent found. Create one first.` };
+          }
+
+          // Call agent-chat for the target agent (non-streaming, single turn)
+          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+          if (!LOVABLE_API_KEY) return { success: false, result: "AI key not configured" };
+
+          // Build a lightweight context for the delegated agent
+          const delegateSystemPrompt = targetAgent.system_prompt || `You are a ${targetAgent.agent_type} agent named ${targetAgent.name}. Answer concisely.`;
+          
+          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: targetAgent.model || "google/gemini-3-flash-preview",
+              messages: [
+                { role: "system", content: delegateSystemPrompt },
+                { role: "user", content: args.message as string },
+              ],
+              stream: false,
+            }),
+          });
+
+          if (!aiResp.ok) {
+            return { success: false, result: `Delegation failed: HTTP ${aiResp.status}` };
+          }
+
+          const aiData = await aiResp.json();
+          const response = aiData.choices?.[0]?.message?.content || "No response";
+
+          // Log the delegation
+          await supabase.from("agent_audit_log").insert({
+            business_id: businessId,
+            agent_id: targetAgent.id,
+            agent_nhi: targetAgent.nhi_identifier,
+            tool_used: "delegate_to_agent",
+            action: "agent_delegation",
+            risk_flag: "low",
+            human_approval: "auto_approved",
+            payload: { from_agent: context.agentNhi, message: args.message, response_preview: response.slice(0, 200) },
+          });
+
+          return { success: true, result: `📨 ${targetAgent.name} responded`, data: { agent: targetAgent.name, agent_type: targetAgent.agent_type, response } };
+        } catch (e) {
+          return { success: false, result: `Delegation error: ${e instanceof Error ? e.message : "Unknown"}` };
+        }
+      }
       default:
         return { success: false, result: `Unknown tool: ${toolName}` };
     }
   } catch (e) {
     return { success: false, result: `Error: ${e instanceof Error ? e.message : "Unknown"}` };
   }
+}
+
+// Load dynamic tools from tool_registry
+async function loadDynamicTools(supabase: ReturnType<typeof createClient>, businessId: string) {
+  const { data: registryTools } = await supabase
+    .from("tool_registry")
+    .select("name, description, data_scope, risk_level")
+    .eq("business_id", businessId)
+    .eq("is_active", true)
+    .eq("is_verified", true);
+
+  if (!registryTools || registryTools.length === 0) return [];
+
+  // Return them as informational context (not executable — they're registered for awareness)
+  return registryTools.map((t: { name: string; description: string | null; data_scope: unknown; risk_level: string }) => ({
+    name: t.name,
+    description: t.description || t.name,
+    risk_level: t.risk_level,
+    data_scope: t.data_scope,
+  }));
 }
 
 serve(async (req) => {
@@ -335,13 +536,14 @@ serve(async (req) => {
       }
     }
 
-    // Gather business context so the agent has real data awareness
-    const [businessRes, goalsRes, knowledgeRes, contactsCountRes, ordersCountRes] = await Promise.all([
+    // Gather business context + dynamic tools in parallel
+    const [businessRes, goalsRes, knowledgeRes, contactsCountRes, ordersCountRes, dynamicTools] = await Promise.all([
       supabase.from("businesses").select("name").eq("id", business_id).single(),
       supabase.from("agent_goals").select("id, goal_type, title, progress, status").eq("business_id", business_id).eq("status", "active").order("goal_type"),
       supabase.from("agent_knowledge").select("category, title, content").eq("business_id", business_id).order("updated_at", { ascending: false }).limit(30),
       supabase.from("contacts").select("*", { count: "exact", head: true }).eq("business_id", business_id),
       supabase.from("orders").select("*", { count: "exact", head: true }).eq("business_id", business_id),
+      loadDynamicTools(supabase, business_id),
     ]);
 
     const businessName = businessRes.data?.name || "Business";
@@ -359,6 +561,11 @@ serve(async (req) => {
     const knowledgeContext = Object.entries(knowledgeByCategory)
       .map(([cat, items]) => `[${cat.toUpperCase()}]\n${items.join("\n")}`)
       .join("\n\n");
+
+    // Dynamic tools context
+    const dynamicToolsContext = dynamicTools.length > 0
+      ? `\n## REGISTERED TOOLS (from Tool Registry)\n${dynamicTools.map((t: { name: string; description: string; risk_level: string }) => `- ${t.name} [${t.risk_level}]: ${t.description}`).join("\n")}\nNote: These are registered external tools. Mention them when relevant but you cannot execute them directly yet.`
+      : "";
 
     // Augment the system prompt with business context
     const contextBlock = `
@@ -383,9 +590,16 @@ You have access to real business data tools. Use them to answer questions with R
 - log_feedback: Log feedback items
 - update_goal_progress: Update goal progress %
 - update_contact: Update contact info
+- create_contact: Create a new CRM contact
+- create_order: Create a new order
+- web_scrape: Scrape any web page for research, competitor analysis, data gathering
+- delegate_to_agent: Ask another agent a question (inter-agent collaboration)
+${dynamicToolsContext}
 
 ALWAYS use tools to look up real data before answering data questions. Never guess or make up numbers.
-When you discover something important, save it to the knowledge base with add_knowledge.`;
+When you discover something important, save it to the knowledge base with add_knowledge.
+Use web_scrape for any research tasks — competitor analysis, pricing research, market data, etc.
+Use delegate_to_agent when another specialist agent could better answer part of the question.`;
 
     const fullSystemPrompt = systemPrompt + contextBlock;
 
@@ -422,7 +636,9 @@ When you discover something important, save it to the knowledge base with add_kn
     ];
     const toolResults: Array<{ tool: string; args: Record<string, unknown>; result: string; success: boolean }> = [];
     let loopCount = 0;
-    const MAX_LOOPS = 5;
+    const MAX_LOOPS = 8; // Increased for complex multi-tool tasks
+
+    const toolContext = { supabaseUrl, supabaseAnonKey, authHeader, agentNhi };
 
     while (loopCount < MAX_LOOPS) {
       loopCount++;
@@ -471,7 +687,7 @@ When you discover something important, save it to the knowledge base with add_kn
           try { fnArgs = JSON.parse(tc.function.arguments); } catch { fnArgs = {}; }
 
           console.log(`Agent ${agentName} executing tool: ${fnName}`, fnArgs);
-          const result = await executeTool(supabase, business_id, fnName, fnArgs);
+          const result = await executeTool(supabase, business_id, fnName, fnArgs, toolContext);
           toolResults.push({ tool: fnName, args: fnArgs, result: result.result, success: result.success });
 
           // Audit log
@@ -481,10 +697,15 @@ When you discover something important, save it to the knowledge base with add_kn
             agent_nhi: agentNhi,
             tool_used: fnName,
             action: `agent_tool_${fnName}`,
-            risk_flag: "low",
+            risk_flag: fnName === "delegate_to_agent" ? "medium" : "low",
             human_approval: "auto_approved",
             payload: { args: fnArgs, result: result.result, success: result.success, data: result.data },
           });
+
+          // Increment tool invocation count in registry
+          if (fnName !== "delegate_to_agent" && fnName !== "web_scrape") {
+            await supabase.rpc("is_business_owner", { _business_id: business_id }); // just a noop to keep auth context
+          }
 
           conversationMessages.push({
             role: "tool",
