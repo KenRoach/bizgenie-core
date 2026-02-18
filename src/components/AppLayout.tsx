@@ -16,11 +16,13 @@ import {
   Wrench,
   ScrollText,
   ShieldAlert,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/ceo", label: "Virtual CEO", icon: Crown },
   { path: "/crm", label: "CRM", icon: Users },
   { path: "/orders", label: "Orders", icon: ShoppingCart },
   { path: "/campaigns", label: "Campaigns", icon: Mail },

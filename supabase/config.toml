@@ -2,3 +2,6 @@ project_id = "imomeflyfjwfwfvckegc"
 
 [functions.agent-guard]
 verify_jwt = false
+
+[functions.ceo-agent]
+verify_jwt = false

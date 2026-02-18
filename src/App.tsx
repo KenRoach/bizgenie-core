@@ -16,6 +16,7 @@ import CampaignsPage from "./pages/CampaignsPage";
 import ToolRegistryPage from "./pages/ToolRegistryPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import SecurityPage from "./pages/SecurityPage";
+import CeoPage from "./pages/CeoPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -47,6 +48,7 @@ const AppRoutes = () => (
     <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
     <Route path="/reset-password" element={<ResetPasswordPage />} />
     <Route path="/" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
+    <Route path="/ceo" element={<ProtectedRoute><AppLayout><CeoPage /></AppLayout></ProtectedRoute>} />
     <Route path="/crm" element={<ProtectedRoute><AppLayout><CrmPage /></AppLayout></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute><AppLayout><OrdersPage /></AppLayout></ProtectedRoute>} />
     <Route path="/insights" element={<ProtectedRoute><AppLayout><InsightsPage /></AppLayout></ProtectedRoute>} />
