@@ -4,8 +4,43 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /**
  * Drip Campaign Processor — runs on cron every minute.
  * Finds enrollments where next_step_at <= now() and status = 'active',
- * executes the step (logs event, future: email/whatsapp), then advances.
+ * executes the step (sends email via Resend, logs event), then advances.
  */
+
+async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) {
+    console.error("RESEND_API_KEY not configured — skipping email send");
+    return false;
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "BizGenie <noreply@updates.bizgenie.app>",
+        to: [to],
+        subject: subject || "Message from your business",
+        html: body.replace(/\n/g, "<br>"),
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error(`Resend API error [${res.status}]: ${errBody}`);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("Email send failed:", e);
+    return false;
+  }
+}
+
 serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -28,6 +63,7 @@ serve(async (req) => {
     }
 
     let processed = 0;
+    let emailsSent = 0;
 
     for (const enrollment of dueEnrollments) {
       const nextStepOrder = enrollment.current_step + 1;
@@ -68,6 +104,17 @@ serve(async (req) => {
       // Execute the step based on channel
       const contact = enrollment.contacts as { name: string; email: string | null; whatsapp: string | null };
       const stepDetail = `Step ${step.step_order}: [${step.channel}] ${step.subject || step.body.substring(0, 80)}`;
+      let sendSuccess = false;
+
+      // Send email if channel is email and contact has an email
+      if (step.channel === "email" && contact.email) {
+        sendSuccess = await sendEmail(
+          contact.email,
+          step.subject || `Message from your business`,
+          step.body
+        );
+        if (sendSuccess) emailsSent++;
+      }
 
       // Log the drip step execution as an event
       await supabase.from("event_logs").insert({
@@ -85,12 +132,9 @@ serve(async (req) => {
           subject: step.subject,
           detail: stepDetail,
           message: step.body,
+          email_sent: step.channel === "email" ? sendSuccess : null,
         },
       });
-
-      // TODO: Actual email/whatsapp sending would go here
-      // For email: integrate Resend/SendGrid
-      // For whatsapp: integrate WhatsApp Business API
 
       // Check if there's a next step
       const { data: nextStep } = await supabase
@@ -116,7 +160,7 @@ serve(async (req) => {
       processed++;
     }
 
-    return new Response(JSON.stringify({ processed }), {
+    return new Response(JSON.stringify({ processed, emailsSent }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
