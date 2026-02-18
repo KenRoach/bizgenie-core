@@ -8,18 +8,13 @@ import {
   TrendingUp, Calendar, CheckCircle2, Circle, ArrowRight,
   Brain, Sparkles, ChevronDown, ChevronRight, Zap
 } from "lucide-react";
+import ManagerThinking from "@/components/ManagerThinking";
 
 type ToolAction = { tool: string; args: Record<string, unknown>; result: string; success: boolean };
-type Msg = { role: "user" | "assistant" | "actions"; content: string; streamId?: string; actions?: ToolAction[] };
+type Msg = { role: "user" | "assistant" | "actions"; content: string; streamId?: string; actions?: ToolAction[]; userMessage?: string };
 
 const MAX_CONCURRENT = 3;
 
-const THINKING_PHASES = [
-  "Analyzing business context...",
-  "Executing actions...",
-  "Spawning agents & creating goals...",
-  "Building strategy...",
-];
 
 const TOOL_ICONS: Record<string, string> = {
   create_goal: "🎯",
@@ -69,7 +64,8 @@ export default function CeoPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [activeStreams, setActiveStreams] = useState<Set<string>>(new Set());
-  const [thinkingPhases, setThinkingPhases] = useState<Record<string, number>>({});
+  const [streamTimers, setStreamTimers] = useState<Record<string, number>>({});
+  const [streamUserMessages, setStreamUserMessages] = useState<Record<string, string>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
   const streamCounter = useRef(0);
 
@@ -102,18 +98,18 @@ export default function CeoPage() {
     setKnowledge((data as Knowledge[]) || []);
   };
 
-  // Thinking phase animation
+  // Elapsed time tracker for active streams
   useEffect(() => {
     if (activeStreams.size === 0) return;
     const interval = setInterval(() => {
-      setThinkingPhases(prev => {
+      setStreamTimers(prev => {
         const next = { ...prev };
         for (const id of activeStreams) {
-          next[id] = ((prev[id] || 0) + 1) % THINKING_PHASES.length;
+          next[id] = (prev[id] || 0) + 1;
         }
         return next;
       });
-    }, 2500);
+    }, 1000);
     return () => clearInterval(interval);
   }, [activeStreams]);
 
@@ -125,7 +121,8 @@ export default function CeoPage() {
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setActiveStreams(prev => new Set(prev).add(streamId));
-    setThinkingPhases(prev => ({ ...prev, [streamId]: 0 }));
+    setStreamTimers(prev => ({ ...prev, [streamId]: 0 }));
+    setStreamUserMessages(prev => ({ ...prev, [streamId]: input.trim() }));
 
     let assistantSoFar = "";
     // Send full conversation history (minus streamIds) for context
@@ -203,7 +200,8 @@ export default function CeoPage() {
       toast({ title: "Error", description: "Failed to reach CEO Agent", variant: "destructive" });
     }
     setActiveStreams(prev => { const n = new Set(prev); n.delete(streamId); return n; });
-    setThinkingPhases(prev => { const n = { ...prev }; delete n[streamId]; return n; });
+    setStreamTimers(prev => { const n = { ...prev }; delete n[streamId]; return n; });
+    setStreamUserMessages(prev => { const n = { ...prev }; delete n[streamId]; return n; });
   }, [input, business, canSend, messages, session, toast]);
 
   // Goal CRUD
@@ -335,22 +333,22 @@ export default function CeoPage() {
 
               const isStreaming = msg.role === "assistant" && msg.streamId && activeStreams.has(msg.streamId);
               const isThinking = isStreaming && !msg.content;
+              if (isThinking) {
+                return (
+                  <ManagerThinking
+                    key={i}
+                    userMessage={streamUserMessages[msg.streamId!] || ""}
+                    elapsed={streamTimers[msg.streamId!] || 0}
+                  />
+                );
+              }
               return (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[80%] px-4 py-3 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}>
-                    {isThinking ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
-                        <span className="text-xs text-muted-foreground animate-pulse">
-                          {THINKING_PHASES[thinkingPhases[msg.streamId!] || 0]}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="whitespace-pre-wrap">
-                        {msg.content}
-                        {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary ml-0.5 animate-pulse rounded-sm" />}
-                      </div>
-                    )}
+                    <div className="whitespace-pre-wrap">
+                      {msg.content}
+                      {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary ml-0.5 animate-pulse rounded-sm" />}
+                    </div>
                   </div>
                 </div>
               );
