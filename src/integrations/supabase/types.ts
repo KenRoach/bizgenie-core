@@ -130,6 +130,123 @@ export type Database = {
           },
         ]
       }
+      agent_goals: {
+        Row: {
+          agent_id: string | null
+          business_id: string
+          created_at: string
+          description: string | null
+          goal_type: string
+          id: string
+          metrics: Json | null
+          parent_goal_id: string | null
+          period_end: string | null
+          period_start: string | null
+          progress: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          business_id: string
+          created_at?: string
+          description?: string | null
+          goal_type?: string
+          id?: string
+          metrics?: Json | null
+          parent_goal_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          progress?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          goal_type?: string
+          id?: string
+          metrics?: Json | null
+          parent_goal_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          progress?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_goals_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_goals_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_goals_parent_goal_id_fkey"
+            columns: ["parent_goal_id"]
+            isOneToOne: false
+            referencedRelation: "agent_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_knowledge: {
+        Row: {
+          business_id: string
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          source: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          category?: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_knowledge_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           created_at: string
