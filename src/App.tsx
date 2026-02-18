@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { BusinessProvider } from "./hooks/useBusiness";
 import AppLayout from "./components/AppLayout";
+import Index from "./pages/Index";
 import DashboardPage from "./pages/DashboardPage";
 import CrmPage from "./pages/CrmPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -40,7 +41,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -48,7 +49,8 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
     <Route path="/reset-password" element={<ResetPasswordPage />} />
-    <Route path="/" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
+    <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+    <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
     <Route path="/ceo" element={<ProtectedRoute><AppLayout><CeoPage /></AppLayout></ProtectedRoute>} />
     <Route path="/crm" element={<ProtectedRoute><AppLayout><CrmPage /></AppLayout></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute><AppLayout><OrdersPage /></AppLayout></ProtectedRoute>} />
