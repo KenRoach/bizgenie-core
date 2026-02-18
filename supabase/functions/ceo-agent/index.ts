@@ -37,7 +37,7 @@ const CEO_TOOLS = [
         type: "object",
         properties: {
           name: { type: "string", description: "Agent display name" },
-          agent_type: { type: "string", enum: ["sales", "ops", "cfo", "cto", "cpo", "cro", "coo", "marketing", "support", "onboarding", "analytics", "growth", "content", "retention", "custom"], description: "Agent type" },
+          agent_type: { type: "string", enum: ["ceo", "sales", "ops", "cfo", "cto", "cpo", "cro", "coo", "marketing", "support", "onboarding", "analytics", "growth", "content", "retention", "custom"], description: "Agent type" },
           system_prompt: { type: "string", description: "The agent's system prompt defining its role, behavior, goals, and operating rules. Make it comprehensive." },
           nhi_identifier: { type: "string", description: "Non-human identity ID (e.g. coo-agent-001)" },
           model: { type: "string", description: "AI model to use. Default: google/gemini-3-flash-preview. Use google/gemini-2.5-flash for cost-sensitive agents." },
