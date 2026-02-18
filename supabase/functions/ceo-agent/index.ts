@@ -297,7 +297,18 @@ ${newComplaints.slice(0, 3).map(f => `• [${f.category}] ${f.title}`).join("\n"
 - Be direct, concise, action-oriented — like a real startup CEO.
 - If no AOP exists, your FIRST action is creating one with create_goal.
 - Speak in the language the owner uses (Spanish/English).
-- Every conversation should end with concrete actions taken and next steps.`;
+- Every conversation should end with concrete actions taken and next steps.
+
+## AUTO-KNOWLEDGE CAPTURE — MANDATORY
+After EVERY conversation, you MUST call add_knowledge at least once to capture the most important insight, decision, or learning from the exchange. Categories:
+- "company" — decisions about team, structure, strategy
+- "product" — product learnings, feature decisions, technical choices
+- "market" — customer insights, competitor intel, market signals
+- "playbook" — repeatable processes, best practices, SOPs
+- "competitor" — competitive landscape, positioning
+- "general" — anything else worth remembering
+If the user shares information about customers, pricing, market, product, or strategy — ALWAYS save it immediately with add_knowledge. Your memory IS the knowledge base.`;
+
 
     // Agent Guard check
     const guardUrl = `${supabaseUrl}/functions/v1/agent-guard`;
@@ -462,6 +473,50 @@ ${newComplaints.slice(0, 3).map(f => `• [${f.category}] ${f.title}`).join("\n"
         payload: { agent_type: "ceo", message_count: messages.length, tools_used: toolResults.map(t => t.tool) },
       }),
     ]);
+
+    // Background: extract knowledge if the CEO didn't already call add_knowledge
+    const alreadySavedKnowledge = toolResults.some(t => t.tool === "add_knowledge" && t.success);
+    if (!alreadySavedKnowledge && messages.length >= 2) {
+      // Fire-and-forget extraction
+      (async () => {
+        try {
+          const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-lite",
+              messages: [
+                { role: "system", content: `Extract the single most important insight, decision, or fact from this conversation. Return a JSON object with: category (one of: company, product, market, playbook, competitor, general), title (short), content (1-2 sentences). If the conversation has no meaningful insight, return {"skip": true}.` },
+                ...messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
+              ],
+              stream: false,
+            }),
+          });
+          if (extractionResponse.ok) {
+            const extractData = await extractionResponse.json();
+            const text = extractData.choices?.[0]?.message?.content || "";
+            // Parse JSON from response
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (!parsed.skip && parsed.title && parsed.content) {
+                await supabase.from("agent_knowledge").insert({
+                  business_id,
+                  category: parsed.category || "general",
+                  title: parsed.title,
+                  content: parsed.content,
+                  source: "auto-extract",
+                  created_by: "ceo-prime-001",
+                });
+                console.log("Auto-extracted knowledge:", parsed.title);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Knowledge extraction error:", e);
+        }
+      })();
+    }
 
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
