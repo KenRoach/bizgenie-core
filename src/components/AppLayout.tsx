@@ -214,10 +214,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 const hierarchy: Record<string, number> = {
                   ceo: 0, cfo: 1, coo: 2, cto: 3, cpo: 4, cro: 5,
                 };
-                const executives = [...agents]
+                const activeAgents = agents.filter(a => a.is_active);
+                const executives = [...activeAgents]
                   .filter(a => executiveTypes.has(a.agent_type))
                   .sort((a, b) => (hierarchy[a.agent_type] ?? 99) - (hierarchy[b.agent_type] ?? 99));
-                const functional = agents.filter(a => !executiveTypes.has(a.agent_type));
+                const functional = activeAgents.filter(a => !executiveTypes.has(a.agent_type));
 
                 return executives.map(exec => {
                   const subs = functional.filter(a => leaderMap[a.agent_type] === exec.agent_type);
