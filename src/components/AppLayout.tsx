@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Bot,
   ChevronLeft,
+  ChevronDown,
   Menu,
   Zap,
   Settings,
@@ -77,6 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null; is_active: boolean }[]>([]);
   const [chatAgent, setChatAgent] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null } | null>(null);
   const [huddleOpen, setHuddleOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!business?.id) return;
@@ -140,37 +142,52 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5">
-          {navSections.map((section, si) => (
-            <div key={si} className={si > 0 ? "mt-3" : ""}>
-              {section.label && !collapsed && (
-                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1 px-3">
-                  {section.label}
-                </div>
-              )}
-              {si > 0 && collapsed && <div className="mx-3 my-2 border-t border-border" />}
-              {section.items.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileOpen(false)}
-                    className={`
-                      flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                      ${isActive
-                        ? "bg-secondary text-foreground"
-                        : "text-sidebar-foreground hover:bg-secondary hover:text-foreground"
-                      }
-                    `}
+        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+          {navSections.map((section, si) => {
+            const sectionKey = section.label || "top";
+            const hasActiveChild = section.items.some(item => location.pathname === item.path);
+            const isOpen = openSections[sectionKey] ?? (hasActiveChild || !section.label);
+
+            const toggleSection = () => {
+              if (!section.label) return;
+              setOpenSections(prev => ({ ...prev, [sectionKey]: !isOpen }));
+            };
+
+            return (
+              <div key={si} className={si > 0 ? "mt-1" : ""}>
+                {section.label && !collapsed && (
+                  <button
+                    onClick={toggleSection}
+                    className="flex items-center justify-between w-full text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1 px-3 py-1 hover:text-foreground transition-colors rounded-sm"
                   >
-                    <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
-                    {!collapsed && <span>{item.label}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+                    <span>{section.label}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+                  </button>
+                )}
+                {si > 0 && collapsed && <div className="mx-3 my-2 border-t border-border" />}
+                {(isOpen || collapsed) && section.items.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={`
+                        flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                        ${isActive
+                          ? "bg-secondary text-foreground"
+                          : "text-sidebar-foreground hover:bg-secondary hover:text-foreground"
+                        }
+                      `}
+                    >
+                      <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
+                      {!collapsed && <span>{item.label}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Agent Status */}
