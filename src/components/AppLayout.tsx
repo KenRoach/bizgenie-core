@@ -93,25 +93,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     const fetchTopAgents = async () => {
-      const { data } = await supabase
+      // Get events from the last 15 minutes first (current heartbeat window)
+      const recentCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const { data: recentData } = await supabase
         .from("event_logs")
-        .select("payload")
+        .select("payload, created_at")
         .eq("business_id", business.id)
         .eq("event_type", "agent_invoked")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (data) {
-        const counts: Record<string, number> = {};
-        data.forEach((e: any) => {
+        .gte("created_at", recentCutoff)
+        .order("created_at", { ascending: false });
+
+      let types: string[] = [];
+
+      if (recentData && recentData.length > 0) {
+        // Show agents active RIGHT NOW (last 15 min)
+        const seen = new Set<string>();
+        recentData.forEach((e: any) => {
           const t = e.payload?.agent_type;
-          if (t) counts[t] = (counts[t] || 0) + 1;
+          if (t && !seen.has(t)) seen.add(t);
         });
-        const sorted = Object.entries(counts)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([type]) => type);
-        setTopAgentTypes(sorted);
+        types = [...seen].slice(0, 3);
+      } else {
+        // Fallback: most recently invoked agents
+        const { data: fallback } = await supabase
+          .from("event_logs")
+          .select("payload")
+          .eq("business_id", business.id)
+          .eq("event_type", "agent_invoked")
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (fallback) {
+          const seen = new Set<string>();
+          fallback.forEach((e: any) => {
+            const t = e.payload?.agent_type;
+            if (t && !seen.has(t)) seen.add(t);
+          });
+          types = [...seen].slice(0, 3);
+        }
       }
+      setTopAgentTypes(types);
     };
 
     fetchAgents();
