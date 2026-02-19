@@ -85,14 +85,22 @@ export default function CeoPage() {
 
   useEffect(() => { if (business) { loadGoals(); loadKnowledge(); } }, [business]);
 
-  // Auto-refresh knowledge every 15 minutes to stay in sync with agent heartbeats
+  // Auto-refresh goals every 15 minutes to stay in sync with agent heartbeats
   useEffect(() => {
     if (!business) return;
-    const interval = setInterval(() => {
-      loadKnowledge();
-      loadGoals();
-    }, 15 * 60 * 1000);
+    const interval = setInterval(() => { loadGoals(); }, 15 * 60 * 1000);
     return () => clearInterval(interval);
+  }, [business]);
+
+  // Real-time subscription for knowledge & goals
+  useEffect(() => {
+    if (!business) return;
+    const channel = supabase
+      .channel("ceo-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_knowledge", filter: `business_id=eq.${business.id}` }, () => { loadKnowledge(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "agent_goals", filter: `business_id=eq.${business.id}` }, () => { loadGoals(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [business]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
