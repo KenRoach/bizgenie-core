@@ -199,7 +199,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {!collapsed && (
           <div className="px-3 pb-4 min-h-0 flex flex-col">
             <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2 px-1">
-              Agents
+              Live Agents
             </div>
             <div className="space-y-0.5 overflow-y-auto max-h-48" style={{ scrollbarWidth: "thin" }}>
               {(() => {
