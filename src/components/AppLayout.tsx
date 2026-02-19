@@ -54,6 +54,7 @@ const navSections = [
   {
     label: "Agents",
     items: [
+      { path: "/agents", label: "All Agents", icon: Bot },
       { path: "/skills", label: "Skill Library", icon: BookMarked },
       { path: "/tools", label: "Tool Registry", icon: Wrench },
       { path: "/audit", label: "Audit Log", icon: ScrollText },
