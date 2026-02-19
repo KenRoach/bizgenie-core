@@ -84,6 +84,16 @@ export default function CeoPage() {
   const [showKnowledgeForm, setShowKnowledgeForm] = useState(false);
 
   useEffect(() => { if (business) { loadGoals(); loadKnowledge(); } }, [business]);
+
+  // Auto-refresh knowledge every 15 minutes to stay in sync with agent heartbeats
+  useEffect(() => {
+    if (!business) return;
+    const interval = setInterval(() => {
+      loadKnowledge();
+      loadGoals();
+    }, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [business]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const loadGoals = async () => {
