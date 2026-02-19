@@ -26,20 +26,45 @@ import { useAuth } from "@/hooks/useAuth";
 import AgentChatPanel from "@/components/AgentChatPanel";
 import HuddlePanel from "@/components/HuddlePanel";
 
-const navItems = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/ceo", label: "Builder", icon: Crown },
-  { path: "/crm", label: "CRM", icon: Users },
-  { path: "/orders", label: "Orders", icon: ShoppingCart },
-  { path: "/campaigns", label: "Campaigns", icon: Mail },
-  { path: "/insights", label: "Insights", icon: BarChart3 },
-  { path: "/inbox", label: "Inbox", icon: MessageSquare },
-  { path: "/tools", label: "Tool Registry", icon: Wrench },
-  { path: "/audit", label: "Audit Log", icon: ScrollText },
-  { path: "/security", label: "Security", icon: ShieldAlert },
-  { path: "/feedback", label: "Feedback Loop", icon: MessageSquareWarning },
-  { path: "/skills", label: "Skill Library", icon: BookMarked },
-  { path: "/settings", label: "Settings", icon: Settings },
+const navSections = [
+  {
+    label: null,
+    items: [
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/ceo", label: "Builder", icon: Crown },
+    ],
+  },
+  {
+    label: "Business",
+    items: [
+      { path: "/crm", label: "CRM", icon: Users },
+      { path: "/orders", label: "Orders", icon: ShoppingCart },
+      { path: "/inbox", label: "Inbox", icon: MessageSquare },
+    ],
+  },
+  {
+    label: "Growth",
+    items: [
+      { path: "/campaigns", label: "Campaigns", icon: Mail },
+      { path: "/insights", label: "Insights", icon: BarChart3 },
+      { path: "/feedback", label: "Feedback", icon: MessageSquareWarning },
+    ],
+  },
+  {
+    label: "Agents",
+    items: [
+      { path: "/skills", label: "Skill Library", icon: BookMarked },
+      { path: "/tools", label: "Tool Registry", icon: Wrench },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { path: "/audit", label: "Audit Log", icon: ScrollText },
+      { path: "/security", label: "Security", icon: ShieldAlert },
+      { path: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -116,26 +141,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 space-y-0.5">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={`
-                  flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                  ${isActive
-                    ? "bg-secondary text-foreground"
-                    : "text-sidebar-foreground hover:bg-secondary hover:text-foreground"
-                  }
-                `}
-              >
-                <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
+          {navSections.map((section, si) => (
+            <div key={si} className={si > 0 ? "mt-3" : ""}>
+              {section.label && !collapsed && (
+                <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1 px-3">
+                  {section.label}
+                </div>
+              )}
+              {si > 0 && collapsed && <div className="mx-3 my-2 border-t border-border" />}
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`
+                      flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                      ${isActive
+                        ? "bg-secondary text-foreground"
+                        : "text-sidebar-foreground hover:bg-secondary hover:text-foreground"
+                      }
+                    `}
+                  >
+                    <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Agent Status */}
