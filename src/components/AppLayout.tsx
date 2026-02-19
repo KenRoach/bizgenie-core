@@ -60,7 +60,7 @@ const navSections = [
     ],
   },
   {
-    label: "System",
+    label: null,
     items: [
       { path: "/security", label: "Security", icon: ShieldAlert },
       { path: "/settings", label: "Settings", icon: Settings },
