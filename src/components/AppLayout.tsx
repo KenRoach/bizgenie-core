@@ -56,12 +56,12 @@ const navSections = [
     items: [
       { path: "/skills", label: "Skill Library", icon: BookMarked },
       { path: "/tools", label: "Tool Registry", icon: Wrench },
+      { path: "/audit", label: "Audit Log", icon: ScrollText },
     ],
   },
   {
     label: "System",
     items: [
-      { path: "/audit", label: "Audit Log", icon: ScrollText },
       { path: "/security", label: "Security", icon: ShieldAlert },
       { path: "/settings", label: "Settings", icon: Settings },
     ],
