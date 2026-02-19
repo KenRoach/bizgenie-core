@@ -125,14 +125,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between h-14 px-4 border-b border-border">
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-primary" />
-              <span className="font-mono font-bold text-sm tracking-wider text-foreground">
+              <Wrench className="w-5 h-5 text-primary drop-shadow-[0_0_6px_hsl(185_80%_50%/0.6)]" />
+              <span className="font-mono font-bold text-sm tracking-wider text-primary drop-shadow-[0_0_8px_hsl(185_80%_50%/0.4)]">
                 xyz88
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground">.io</span>
+              <span className="text-[10px] font-mono text-primary/50">.io</span>
             </div>
           )}
-          {collapsed && <Zap className="w-5 h-5 text-primary mx-auto" />}
+          {collapsed && <Wrench className="w-5 h-5 text-primary drop-shadow-[0_0_6px_hsl(185_80%_50%/0.6)] mx-auto" />}
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="hidden lg:flex items-center justify-center w-6 h-6 rounded-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
@@ -167,6 +167,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {si > 0 && collapsed && <div className="mx-3 my-2 border-t border-border" />}
                 {(isOpen || collapsed) && section.items.map((item) => {
                   const isActive = location.pathname === item.path;
+                  const isBuilder = item.path === "/ceo";
                   return (
                     <Link
                       key={item.path}
@@ -174,13 +175,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       onClick={() => setMobileOpen(false)}
                       className={`
                         flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                        ${isActive
-                          ? "bg-secondary text-foreground"
-                          : "text-sidebar-foreground hover:bg-secondary hover:text-foreground"
+                        ${isBuilder
+                          ? isActive
+                            ? "bg-primary/15 text-primary drop-shadow-[0_0_8px_hsl(185_80%_50%/0.3)]"
+                            : "text-primary/70 hover:bg-primary/10 hover:text-primary"
+                          : isActive
+                            ? "bg-secondary text-foreground"
+                            : "text-sidebar-foreground hover:bg-secondary hover:text-foreground"
                         }
                       `}
                     >
-                      <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
+                      <item.icon className={`w-4 h-4 shrink-0 ${isBuilder ? "text-primary drop-shadow-[0_0_6px_hsl(185_80%_50%/0.5)]" : isActive ? "text-primary" : ""}`} />
                       {!collapsed && <span>{item.label}</span>}
                     </Link>
                   );
