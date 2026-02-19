@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import AgentChatPanel from "@/components/AgentChatPanel";
+import HuddlePanel from "@/components/HuddlePanel";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -48,6 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [agents, setAgents] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null; is_active: boolean }[]>([]);
   const [chatAgent, setChatAgent] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null } | null>(null);
+  const [huddleOpen, setHuddleOpen] = useState(false);
 
   useEffect(() => {
     if (!business?.id) return;
@@ -219,14 +221,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               SYSTEM ONLINE
             </span>
           </div>
-          <div className="ml-auto font-mono text-[11px] text-muted-foreground">
-            xyz88.io
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => { setChatAgent(null); setHuddleOpen(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Huddle
+            </button>
+            <span className="font-mono text-[11px] text-muted-foreground">xyz88.io</span>
           </div>
         </header>
 
         {/* Content */}
         <div className="flex-1 overflow-auto kitz-grid-bg relative">
-          {chatAgent ? (
+          {huddleOpen ? (
+            <HuddlePanel onClose={() => setHuddleOpen(false)} />
+          ) : chatAgent ? (
             <AgentChatPanel agent={chatAgent} onClose={() => setChatAgent(null)} />
           ) : (
             children

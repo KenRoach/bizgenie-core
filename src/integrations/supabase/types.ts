@@ -203,6 +203,99 @@ export type Database = {
           },
         ]
       }
+      agent_huddle_messages: {
+        Row: {
+          business_id: string
+          content: string
+          created_at: string
+          huddle_id: string
+          id: string
+          sender_agent_id: string | null
+          sender_name: string
+          sender_type: string
+        }
+        Insert: {
+          business_id: string
+          content?: string
+          created_at?: string
+          huddle_id: string
+          id?: string
+          sender_agent_id?: string | null
+          sender_name?: string
+          sender_type?: string
+        }
+        Update: {
+          business_id?: string
+          content?: string
+          created_at?: string
+          huddle_id?: string
+          id?: string
+          sender_agent_id?: string | null
+          sender_name?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_huddle_messages_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_huddle_messages_huddle_id_fkey"
+            columns: ["huddle_id"]
+            isOneToOne: false
+            referencedRelation: "agent_huddles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_huddle_messages_sender_agent_id_fkey"
+            columns: ["sender_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_huddles: {
+        Row: {
+          business_id: string
+          created_at: string
+          huddle_type: string
+          id: string
+          status: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          huddle_type?: string
+          id?: string
+          status?: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          huddle_type?: string
+          id?: string
+          status?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_huddles_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_knowledge: {
         Row: {
           business_id: string
