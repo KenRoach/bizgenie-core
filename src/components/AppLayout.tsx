@@ -20,6 +20,7 @@ import {
   ShieldAlert,
   Crown,
   MessageSquareWarning,
+  BookMarked,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import AgentChatPanel from "@/components/AgentChatPanel";
@@ -37,6 +38,7 @@ const navItems = [
   { path: "/audit", label: "Audit Log", icon: ScrollText },
   { path: "/security", label: "Security", icon: ShieldAlert },
   { path: "/feedback", label: "Feedback Loop", icon: MessageSquareWarning },
+  { path: "/skills", label: "Skill Library", icon: BookMarked },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
