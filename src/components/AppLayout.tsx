@@ -346,12 +346,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-auto kitz-grid-bg relative">
           {huddleOpen ? (
             <HuddlePanel onClose={() => setHuddleOpen(false)} />
-          ) : chatAgent ? (
-            <AgentChatPanel agent={chatAgent} onClose={() => setChatAgent(null)} />
           ) : (
             children
           )}
         </div>
+
+        {/* Agent Chat Slide-over */}
+        {chatAgent && (
+          <>
+            <div className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm" onClick={() => setChatAgent(null)} />
+            <AgentChatPanel agent={chatAgent} onClose={() => setChatAgent(null)} />
+          </>
+        )}
       </main>
     </div>
   );

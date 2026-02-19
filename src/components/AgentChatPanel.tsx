@@ -158,29 +158,34 @@ export default function AgentChatPanel({ agent, onClose }: AgentChatPanelProps) 
   }, [input, business, session, streaming, messages, agent, toast]);
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="fixed inset-y-0 right-0 z-50 flex flex-col w-full max-w-md bg-card border-l border-border shadow-2xl shadow-black/30 animate-in slide-in-from-right duration-200">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50 shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
+          <X className="w-4 h-4" />
         </button>
-        <Bot className="w-5 h-5 text-primary" />
+        <div className="w-8 h-8 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+          <Bot className="w-4 h-4 text-primary drop-shadow-[0_0_4px_hsl(185_80%_50%/0.5)]" />
+        </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-sm font-semibold text-foreground truncate">{agent.name}</h2>
           <p className="text-[10px] font-mono text-muted-foreground">{agent.nhi_identifier || agent.agent_type}</p>
         </div>
-        <span className="flex items-center gap-1 text-[10px] font-mono text-success">
-          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-glow" /> ONLINE
+        <span className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-success/10 border border-success/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-glow" />
+          <span className="text-[10px] font-mono text-success">LIVE</span>
         </span>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center py-8 space-y-3">
-            <Bot className="w-10 h-10 text-primary mx-auto opacity-50" />
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              Chat with <strong>{agent.name}</strong> — this agent has full access to your business data, goals, knowledge base, and CRM.
+          <div className="text-center py-12 space-y-3">
+            <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
+              <Bot className="w-6 h-6 text-primary opacity-60" />
+            </div>
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+              Chat with <strong className="text-foreground">{agent.name}</strong> — full access to your business data, goals, knowledge base, and CRM.
             </p>
           </div>
         )}
@@ -188,19 +193,17 @@ export default function AgentChatPanel({ agent, onClose }: AgentChatPanelProps) 
         {messages.map((msg, i) => {
           if (msg.role === "actions" && msg.actions) {
             return (
-              <div key={i} className="flex justify-start">
-                <div className="max-w-[85%] space-y-1">
-                  <div className="flex items-center gap-1.5 px-1">
-                    <Zap className="w-3 h-3 text-primary" />
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Actions Executed</span>
-                  </div>
-                  {msg.actions.map((action, j) => (
-                    <div key={j} className={`flex items-start gap-2 px-3 py-2 rounded-md border text-xs ${action.success ? "bg-success/10 border-success/30 text-success" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
-                      <span className="text-base leading-none mt-0.5">{TOOL_ICONS[action.tool] || "⚡"}</span>
-                      <span className="font-medium">{action.result}</span>
-                    </div>
-                  ))}
+              <div key={i} className="space-y-1.5">
+                <div className="flex items-center gap-1.5 px-1">
+                  <Zap className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Actions</span>
                 </div>
+                {msg.actions.map((action, j) => (
+                  <div key={j} className={`flex items-start gap-2 px-3 py-2 rounded-md border text-xs ${action.success ? "bg-success/5 border-success/20 text-success" : "bg-destructive/5 border-destructive/20 text-destructive"}`}>
+                    <span className="text-sm leading-none mt-0.5">{TOOL_ICONS[action.tool] || "⚡"}</span>
+                    <span className="font-medium">{action.result}</span>
+                  </div>
+                ))}
               </div>
             );
           }
@@ -214,8 +217,8 @@ export default function AgentChatPanel({ agent, onClose }: AgentChatPanelProps) 
 
           return (
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}>
-                <div className="whitespace-pre-wrap">
+              <div className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary border border-border text-foreground"}`}>
+                <div className="whitespace-pre-wrap leading-relaxed">
                   {msg.content}
                   {isStreaming && <span className="inline-block w-1.5 h-4 bg-primary ml-0.5 animate-pulse rounded-sm" />}
                 </div>
@@ -233,11 +236,12 @@ export default function AgentChatPanel({ agent, onClose }: AgentChatPanelProps) 
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-            placeholder={`Ask ${agent.name} anything...`}
-            className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+            placeholder={`Message ${agent.name}...`}
+            className="flex-1 px-3 py-2.5 bg-secondary border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
             disabled={streaming}
+            autoFocus
           />
-          <button onClick={sendMessage} disabled={streaming || !input.trim()} className="px-3 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50">
+          <button onClick={sendMessage} disabled={streaming || !input.trim()} className="px-3 py-2.5 bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 transition-opacity">
             {streaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
