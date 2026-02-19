@@ -76,6 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [agents, setAgents] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null; is_active: boolean }[]>([]);
+  const [topAgentTypes, setTopAgentTypes] = useState<string[]>([]);
   const [chatAgent, setChatAgent] = useState<{ id: string; name: string; agent_type: string; nhi_identifier: string | null } | null>(null);
   const [huddleOpen, setHuddleOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -90,9 +91,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         .order("created_at");
       if (data) setAgents(data);
     };
-    fetchAgents();
 
-    // Realtime subscription for live updates
+    const fetchTopAgents = async () => {
+      const { data } = await supabase
+        .from("event_logs")
+        .select("payload")
+        .eq("business_id", business.id)
+        .eq("event_type", "agent_invoked")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (data) {
+        const counts: Record<string, number> = {};
+        data.forEach((e: any) => {
+          const t = e.payload?.agent_type;
+          if (t) counts[t] = (counts[t] || 0) + 1;
+        });
+        const sorted = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([type]) => type);
+        setTopAgentTypes(sorted);
+      }
+    };
+
+    fetchAgents();
+    fetchTopAgents();
+
     const channel = supabase
       .channel("sidebar-agents")
       .on("postgres_changes", { event: "*", schema: "public", table: "agent_configurations", filter: `business_id=eq.${business.id}` }, () => {
@@ -215,10 +239,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   ceo: 0, cfo: 1, coo: 2, cto: 3, cpo: 4, cro: 5,
                 };
                 const activeAgents = agents.filter(a => a.is_active);
-                const executives = [...activeAgents]
+                // Only show agents whose type is in the top 3 most active
+                const topSet = new Set(topAgentTypes);
+                const relevantAgents = topSet.size > 0
+                  ? activeAgents.filter(a => topSet.has(a.agent_type))
+                  : activeAgents.slice(0, 3);
+                const executives = [...relevantAgents]
                   .filter(a => executiveTypes.has(a.agent_type))
                   .sort((a, b) => (hierarchy[a.agent_type] ?? 99) - (hierarchy[b.agent_type] ?? 99));
-                const functional = activeAgents.filter(a => !executiveTypes.has(a.agent_type));
+                const functional = relevantAgents.filter(a => !executiveTypes.has(a.agent_type));
 
                 return executives.map(exec => {
                   const subs = functional.filter(a => leaderMap[a.agent_type] === exec.agent_type);
