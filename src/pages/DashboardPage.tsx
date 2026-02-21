@@ -20,6 +20,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import WhatsAppConnect from "@/components/WhatsAppConnect";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useNavigate } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
@@ -350,6 +351,9 @@ export default function DashboardPage() {
           </button>
         ))}
       </div>
+
+      {/* WhatsApp Connect */}
+      {business && <WhatsAppConnect businessId={business.id} />}
 
       {/* KPI Cards — swipeable on mobile, grid on desktop */}
       <SwipeableCards>
