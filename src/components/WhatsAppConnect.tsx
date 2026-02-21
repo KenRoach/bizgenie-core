@@ -62,7 +62,7 @@ export default function WhatsAppConnect({ businessId }: { businessId: string }) 
     setShowConnect(true);
     setConnecting(true);
 
-    const es = new EventSource(`${CONNECTOR_URL}/whatsapp/connect?businessId=${businessId}`);
+    const es = new EventSource(`${CONNECTOR_URL}/whatsapp/connect?userId=${businessId}`);
     sseRef.current = es;
 
     es.addEventListener("qr", (e: MessageEvent) => {
@@ -148,6 +148,14 @@ export default function WhatsAppConnect({ businessId }: { businessId: string }) 
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Missing connector URL warning */}
+        {!CONNECTOR_URL && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-destructive/10 border border-destructive/30">
+            <WifiOff className="w-4 h-4 text-destructive shrink-0" />
+            <p className="text-xs text-muted-foreground">WhatsApp connector not configured</p>
+          </div>
+        )}
+
         {/* Connected state */}
         {connected && !showConnect && (
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-secondary/40 border border-border/50">
