@@ -128,7 +128,7 @@ export default function WhatsAppConnect({ businessId }: { businessId: string }) 
   useEffect(() => () => closeSse(), []);
 
   return (
-    <div className="bg-card border border-border rounded-md overflow-hidden">
+    <div className="hidden md:block bg-card border border-border rounded-md overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
