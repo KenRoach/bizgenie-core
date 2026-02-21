@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 
-const CONNECTOR_URL = import.meta.env.VITE_WHATSAPP_CONNECTOR_URL || "";
+const CONNECTOR_URL = import.meta.env.VITE_WHATSAPP_CONNECTOR_URL || "https://kitzv1-production.up.railway.app";
 
 interface WhatsAppSession {
   userId: string;
