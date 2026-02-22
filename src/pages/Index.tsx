@@ -17,8 +17,8 @@ export default function Index() {
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-primary" />
-          <span className="font-mono font-bold text-sm tracking-wider">xyz88</span>
-          <span className="text-[10px] font-mono text-muted-foreground">.io</span>
+          <span className="font-mono font-bold text-sm tracking-wider">kitz</span>
+          <span className="text-[10px] font-mono text-muted-foreground">.services</span>
         </div>
         <div className="flex items-center gap-3">
           <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Sign In</Link>
@@ -79,11 +79,11 @@ export default function Index() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
-            <span className="font-mono text-xs text-muted-foreground">Kitz © 2026 — xyz88.io</span>
+            <span className="font-mono text-xs text-muted-foreground">Kitz © 2026 — workspace.kitz.services</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <a href="https://admin.kitz.services" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">admin.kitz.services</a>
-            <a href="https://xyz88.io" className="hover:text-foreground transition-colors">xyz88.io</a>
+            <a href="https://workspace.kitz.services" className="hover:text-foreground transition-colors">workspace.kitz.services</a>
           </div>
         </div>
       </footer>
