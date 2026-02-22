@@ -392,6 +392,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          onboarding_completed: boolean
           owner_id: string
           settings: Json | null
           slug: string | null
@@ -401,6 +402,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          onboarding_completed?: boolean
           owner_id: string
           settings?: Json | null
           slug?: string | null
@@ -410,6 +412,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          onboarding_completed?: boolean
           owner_id?: string
           settings?: Json | null
           slug?: string | null
@@ -974,6 +977,41 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          business_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]

@@ -10,6 +10,7 @@ interface Business {
   settings: unknown;
   created_at: string;
   updated_at: string;
+  onboarding_completed: boolean;
 }
 
 interface BusinessContextType {
