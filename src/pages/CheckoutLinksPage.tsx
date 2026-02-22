@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusiness } from "@/hooks/useBusiness";
 import {
-  Plus, Copy, Pencil, Trash2, Loader2, Link as LinkIcon, X,
+  Plus, Copy, Pencil, Trash2, Loader2, Link as LinkIcon, X, MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -109,10 +109,18 @@ export default function CheckoutLinksPage() {
     fetchLinks();
   };
 
+  const getShareUrl = (link: CheckoutLink) => `${window.location.origin}/s/${link.id}`;
+
   const copyLink = (link: CheckoutLink) => {
-    const url = `${window.location.origin}/pay/${link.id}`;
+    const url = getShareUrl(link);
     navigator.clipboard.writeText(url);
     toast({ title: "Link copied", description: url });
+  };
+
+  const shareWhatsApp = (link: CheckoutLink) => {
+    const url = getShareUrl(link);
+    const msg = encodeURIComponent(`Hi! Here's your checkout link for "${link.title}" — $${Number(link.amount).toFixed(2)}:\n${url}`);
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
 
   return (
@@ -150,6 +158,9 @@ export default function CheckoutLinksPage() {
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => shareWhatsApp(link)} className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors" title="Share via WhatsApp">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                </button>
                 <button onClick={() => copyLink(link)} className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors" title="Copy link">
                   <Copy className="w-3.5 h-3.5" />
                 </button>
@@ -212,6 +223,17 @@ export default function CheckoutLinksPage() {
                     <option value="expired">Expired</option>
                   </select>
                 </div>
+                {editing && (
+                  <div>
+                    <label className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Shareable URL</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input readOnly value={getShareUrl(editing)} className="flex-1 px-3 py-2 bg-secondary border border-border rounded-md text-xs font-mono text-muted-foreground" />
+                      <button onClick={() => copyLink(editing)} className="px-2 py-2 bg-secondary border border-border rounded-md text-muted-foreground hover:text-foreground transition-colors">
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
