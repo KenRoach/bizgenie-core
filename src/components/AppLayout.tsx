@@ -22,6 +22,9 @@ import {
   Crown,
   MessageSquareWarning,
   BookMarked,
+  CreditCard,
+  ListTodo,
+  Battery,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import AgentChatPanel from "@/components/AgentChatPanel";
@@ -40,6 +43,8 @@ const navSections = [
     items: [
       { path: "/crm", label: "CRM", icon: Users },
       { path: "/orders", label: "Orders", icon: ShoppingCart },
+      { path: "/checkout", label: "Checkout Links", icon: CreditCard },
+      { path: "/tasks", label: "Tasks", icon: ListTodo },
       { path: "/inbox", label: "Inbox", icon: MessageSquare },
     ],
   },
@@ -63,6 +68,7 @@ const navSections = [
   {
     label: null,
     items: [
+      { path: "/ai", label: "AI Battery", icon: Battery },
       { path: "/security", label: "Security", icon: ShieldAlert },
       { path: "/settings", label: "Settings", icon: Settings },
     ],
@@ -172,9 +178,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2">
               <Wrench className="w-5 h-5 text-primary drop-shadow-[0_0_6px_hsl(185_80%_50%/0.6)]" />
               <span className="font-mono font-bold text-sm tracking-wider text-primary drop-shadow-[0_0_8px_hsl(185_80%_50%/0.4)]">
-                xyz88
+                kitz
               </span>
-              <span className="text-[10px] font-mono text-primary/50">.io</span>
+              <span className="text-[10px] font-mono text-primary/50">.services</span>
             </div>
           )}
           {collapsed && <Wrench className="w-5 h-5 text-primary drop-shadow-[0_0_6px_hsl(185_80%_50%/0.6)] mx-auto" />}
@@ -339,7 +345,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Users className="w-3.5 h-3.5" />
               Huddle
             </button>
-            <span className="font-mono text-[11px] text-muted-foreground">xyz88.io</span>
+            <span className="font-mono text-[11px] text-muted-foreground">workspace.kitz.services</span>
           </div>
         </header>
 

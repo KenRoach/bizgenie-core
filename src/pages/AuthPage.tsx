@@ -40,8 +40,8 @@ export default function AuthPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
             <Zap className="w-6 h-6 text-primary" />
-            <span className="font-mono font-bold text-xl tracking-wider text-foreground">xyz88</span>
-            <span className="text-xs font-mono text-muted-foreground">.io</span>
+            <span className="font-mono font-bold text-xl tracking-wider text-foreground">kitz</span>
+            <span className="text-xs font-mono text-muted-foreground">.services</span>
           </div>
           <p className="text-sm text-muted-foreground">
             {mode === "login" ? "Sign in to your dashboard" : "Set up your account"}
@@ -54,7 +54,7 @@ export default function AuthPage() {
               <label className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@xyz88.io" className="w-full pl-9 pr-3 py-2 bg-secondary border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@kitz.services" className="w-full pl-9 pr-3 py-2 bg-secondary border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
               </div>
             </div>
             <div className="space-y-1.5">
