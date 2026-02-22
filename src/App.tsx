@@ -26,6 +26,7 @@ import AgentsPage from "./pages/AgentsPage";
 import CheckoutLinksPage from "./pages/CheckoutLinksPage";
 import TasksPage from "./pages/TasksPage";
 import AiBatteryPage from "./pages/AiBatteryPage";
+import StorefrontPage from "./pages/StorefrontPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
     <Route path="/reset-password" element={<ResetPasswordPage />} />
+    <Route path="/s/:id" element={<StorefrontPage />} />
     <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
     <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
     <Route path="/ceo" element={<ProtectedRoute><AppLayout><CeoPage /></AppLayout></ProtectedRoute>} />
